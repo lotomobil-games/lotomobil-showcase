@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Showcase</title>
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="64x64"
+      href="showcase-icon-64.png"
+    />
+    <link rel="apple-touch-icon" href="showcase-icon-180.png" />
+    <script>
+      // The appearance before the first paint, shared with Composer (src/lib/appearance.ts).
+      try {
+        if (localStorage.getItem("composer-appearance") === "light")
+          document.documentElement.dataset.appearance = "light"
+      } catch {}
+    </script>
+    <!-- The kit's tenants, brands and themes (window.CrashTokens), beside the page on the site. -->
+    <script src="crash-ui/tokens.js?v=f47c77b737b1"></script>
+    <script type="module" crossorigin src="./assets/showcase-CgJaAYMq.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/showcase-hW58rlOa.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
