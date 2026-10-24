@@ -21,18 +21,18 @@
    are square, and the border it would draw along it is gone. */
 @media(max-width:599px){.crash-ui .ladder{left:0}
 .crash-ui .ladder-list{border-top-left-radius:0;border-bottom-left-radius:0;border-left:0}}
-.crash-ui .multiplier{min-width:var(--web-multiplier-min-width);border:var(--stroke-2) solid var(--multiplier-color,var(--cyan));border-radius:var(--radius-32);background:var(--surface);text-align:center;font:var(--type-32) var(--font-numbers),var(--font-body),sans-serif;color:var(--multiplier-color,var(--cyan));padding:var(--space-4) var(--space-24)}.crash-ui .controls{width:100%;max-width:var(--web-control-max-width);display:grid;gap:var(--space-16)}.crash-ui .settings-row{display:grid;grid-template-columns:var(--web-settings-column-width) 1fr;gap:var(--space-12)}.crash-ui .knob{height:var(--web-knob-size);width:var(--web-knob-size);border-radius:50%;background:var(--knob);flex:none}.crash-ui .stake{display:grid;grid-template-columns:fit-content(var(--share-stake-edge)) var(--tap-min) minmax(var(--web-winner-name-min-width),1fr) var(--tap-min) fit-content(var(--share-stake-edge));gap:var(--space-8);align-items:center}.crash-ui .stake .money{text-align:center;font-size:var(--type-24);min-width:0}/* The stake reads like the balance in the header: the number, then the same coin, no currency   mark. The coin is drawn on the amount itself, so it grows and shrinks with the digits and   the pair always lands in one line box. Sizes step, never interpolate: the stake is the   panel's largest figure while it is short and gives up a step as it grows. */.crash-ui .coin-amount::after{content:'';display:inline-block;width:1em;height:1em;margin-left:var(--space-6);vertical-align:-0.12em;background:url('assets/icons/coin.webp') center/contain no-repeat}
+.crash-ui .multiplier{min-width:var(--web-multiplier-min-width);border:var(--stroke-2) solid var(--multiplier-color,var(--cyan));border-radius:var(--radius-32);background:var(--surface);text-align:center;font:var(--type-32) var(--font-numbers),var(--font-body),sans-serif;color:var(--multiplier-color,var(--cyan));padding:var(--space-4) var(--space-24)}.crash-ui .controls{width:100%;max-width:var(--web-control-max-width);display:grid;gap:var(--space-16)}.crash-ui .knob{height:var(--web-knob-size);width:var(--web-knob-size);border-radius:50%;background:var(--knob);flex:none}.crash-ui .stake{display:grid;grid-template-columns:fit-content(var(--share-stake-edge)) var(--tap-min) minmax(var(--web-winner-name-min-width),1fr) var(--tap-min) fit-content(var(--share-stake-edge));gap:var(--space-8);align-items:center}.crash-ui .stake .money{text-align:center;font-size:var(--type-24);min-width:0}/* The stake reads like the balance in the header: the number, then the same coin, no currency   mark. The coin is drawn on the amount itself, so it grows and shrinks with the digits and   the pair always lands in one line box. Sizes step, never interpolate: the stake is the   panel's largest figure while it is short and gives up a step as it grows. */.crash-ui .coin-amount::after{content:'';display:inline-block;width:1em;height:1em;margin-left:var(--space-6);vertical-align:-0.12em;background:url('assets/icons/coin.webp') center/contain no-repeat}
 .crash-ui.no-webp .coin-amount::after{background-image:url('assets/icons/coin.png')}
 .crash-ui.no-webp .avatar{background-image:url('assets/avatars/players.png')}/* In a table the coin keeps a readable size whatever the row's type size. */
 .crash-ui .bets-table .coin-amount::after{width:var(--type-14);height:var(--type-14);margin-left:var(--space-4)}.crash-ui .tabbed-controls .wager-amount .money[data-fit=long]{font-size:var(--type-20)}.crash-ui .stake .button{padding:var(--space-4);font-size:var(--type-16)}.crash-ui .actions{display:flex;gap:var(--space-12);min-width:0}.crash-ui .action{flex:1;min-width:0;min-height:var(--web-control-action-height);flex-direction:column;gap:var(--space-4);font-size:var(--type-24);border-radius:var(--radius-32);color:var(--on-go);border-color:var(--action-go-edge);background:linear-gradient(var(--action-go-top),var(--action-go-bottom));box-shadow:inset 0 0 0 var(--stroke-3) color-mix(in srgb,var(--action-go-edge) calc(var(--alpha-soft) * 100%),transparent),0 var(--web-button-depth) 0 var(--action-go-shadow)}.crash-ui .action.cash{background:linear-gradient(var(--action-cash-top),var(--action-cash-bottom));border-color:var(--action-cash-edge);color:var(--on-cash);box-shadow:inset 0 0 0 var(--stroke-3) color-mix(in srgb,var(--action-cash-edge) calc(var(--alpha-soft) * 100%),transparent),0 var(--web-button-depth) 0 var(--cash-shadow)}
 .crash-ui .action:disabled,.crash-ui .action.cash:disabled{background:var(--button-disabled);border-color:var(--border);color:var(--disabled);box-shadow:inset 0 var(--web-button-depth) 0 var(--button-shadow);filter:none}.crash-ui .action-title{display:flex;align-items:center;justify-content:center;gap:var(--space-8)}.crash-ui .action .money,.crash-ui .action small{font-size:var(--type-16);line-height:var(--leading-tight)}.crash-ui .action .icon{width:var(--web-icon-md);height:var(--web-icon-md)}.crash-ui .modal-layer{position:fixed;inset:0;z-index:var(--layer-modal);background:var(--scrim);display:flex;align-items:center;justify-content:center;padding:var(--space-16);pointer-events:auto;touch-action:pan-y}.crash-ui .modal{width:min(100%,var(--modal-max-width-px));max-height:calc(100dvh - var(--space-32));overflow:auto;overscroll-behavior:contain;padding:var(--space-24);background:var(--surface);border:var(--stroke-1) solid var(--border);box-shadow:var(--elevation-modal)}.crash-ui .modal header{display:flex;align-items:center;justify-content:space-between;gap:var(--space-16);margin-bottom:var(--space-16)}.crash-ui .modal h2{font-size:var(--type-24);margin:0}.crash-ui .modal-body{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-16)}.crash-ui .modal .button{min-height:var(--web-control-comfort-height)}.crash-ui .setting{display:flex;align-items:center;justify-content:space-between;gap:var(--space-16);min-height:var(--web-control-comfort-height)}.crash-ui .setting input[type=checkbox]{width:var(--space-24);height:var(--space-24);accent-color:var(--switch-on)}.crash-ui select{background:var(--button);color:var(--text);border:var(--stroke-1) solid var(--border);border-radius:var(--radius-16);padding:var(--space-12);max-width:var(--share-select-max)}.crash-ui .win-modal{text-align:center}.crash-ui .win-modal .win-coin{width:var(--web-win-coin-hero);height:var(--web-win-coin-hero);display:block;margin:auto}.crash-ui .win-total{font:var(--type-48) var(--font-numbers),var(--font-body),sans-serif;color:var(--gold)}.crash-ui .toast{position:absolute;top:var(--share-celebration-y);left:50%;transform:translateX(-50%);padding:var(--space-12) var(--space-24);border-radius:var(--radius-24);background:var(--surface);border:var(--stroke-1) solid var(--border);pointer-events:none;text-align:center;max-width:var(--share-toast-max)}.crash-ui .dev{position:absolute;right:var(--space-16);top:var(--dev-top,var(--web-dev-top));pointer-events:auto;min-height:var(--tap-min);padding:var(--space-8) var(--space-12);border-radius:var(--radius-16);background:var(--surface-scrim);border:var(--stroke-1) solid var(--border);color:var(--text)}.crash-ui .confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none}.crash-ui .confetti i{position:absolute;left:50%;top:var(--share-celebration-y);width:var(--space-8);height:var(--space-12);background:var(--gold);animation:celebrate var(--motion-celebrate-ms) ease-out forwards;transform:rotate(var(--angle));border-radius:var(--radius-4)}.crash-ui .confetti i:nth-child(3n){background:var(--success)}.crash-ui .confetti i:nth-child(3n + 1){background:var(--cyan)}@keyframes celebrate{to{transform:translate(var(--x),var(--y)) rotate(480deg);opacity:0}}.crash-ui.reduced *{animation:none!important;transition:none!important}
 @media(max-width:599px){.crash-ui{--edge:var(--space-8)}.crash-ui .panel{padding:var(--space-12)}.crash-ui .modal-layer:not(.is-win){align-items:flex-end}.crash-ui .account .records{gap:var(--space-8);padding:var(--space-8)}.crash-ui .record .icon{width:var(--web-icon-sm);height:var(--web-icon-sm)}.crash-ui .record-value{font-size:var(--type-16)}.crash-ui .record-title{font-size:var(--type-12)}.crash-ui .modal{padding:var(--space-24)}.crash-ui .stake .money{font-size:var(--type-24)}.crash-ui .balance .icon{width:var(--web-icon-sm);height:var(--web-icon-sm)}}
-@media(min-width:600px){.crash-ui .settings-row,.crash-ui .actions{grid-column:1/-1}.crash-ui .record-top{flex-wrap:nowrap}.crash-ui .record-title,.crash-ui .owner-name{font-size:var(--type-16)}.crash-ui .record-value{font-size:var(--type-24)}.crash-ui .winners{max-width:100%}}
+@media(min-width:600px){.crash-ui .actions{grid-column:1/-1}.crash-ui .record-top{flex-wrap:nowrap}.crash-ui .record-title,.crash-ui .owner-name{font-size:var(--type-16)}.crash-ui .record-value{font-size:var(--type-24)}.crash-ui .winners{max-width:100%}}
 @media(min-width:960px){.crash-ui .winner:last-child{border:0}.crash-ui .winner .avatar{grid-row:auto}.crash-ui .win-multiple{display:block;font-family:var(--font-numbers),var(--font-body),sans-serif}.crash-ui .winner .money{text-align:right}.crash-ui .controls{display:flex;align-items:center;flex-wrap:wrap}.crash-ui .action{min-height:var(--web-action-compact-height);font-size:var(--type-24)}.crash-ui .controls{gap:var(--space-16)}.crash-ui .history{max-width:var(--web-history-max-width)}.crash-ui .online{font-size:var(--type-12)}.crash-ui .record-title,.crash-ui .owner-name{font-size:var(--type-16)}}
 @media(prefers-reduced-motion:reduce){.crash-ui *{animation:none!important;transition:none!important}}
 /* A narrow phone that is also short: the live wins strip is what pushes the account
    panel over half the screen, and the game has to have somewhere to be drawn. */
-@media(max-width:599px) and (max-height:700px){.crash-ui .winners{display:none}}@media(min-width:600px) and (max-height:720px){.crash-ui .winners,.crash-ui .records{display:none}.crash-ui .top{right:auto;max-width:var(--share-header-max)}.crash-ui .controls{gap:var(--space-8);padding:var(--space-8)}.crash-ui .action{min-height:var(--tap-min);font-size:var(--type-24)}.crash-ui .multiplier{font-size:var(--type-24)}.crash-ui .settings-row{grid-template-columns:var(--web-settings-column-compact-width) 1fr}.crash-ui .controls{grid-template-columns:minmax(var(--web-short-stake-min-width),1fr) minmax(var(--web-short-presets-min-width),.8fr)}.crash-ui .settings-row{grid-column:1}.crash-ui .stake{grid-column:1;grid-row:2}.crash-ui .actions{grid-column:2;grid-row:2}.crash-ui .dev{top:var(--space-16)}}
+@media(max-width:599px) and (max-height:700px){.crash-ui .winners{display:none}}@media(min-width:600px) and (max-height:720px){.crash-ui .winners,.crash-ui .records{display:none}.crash-ui .top{right:auto;max-width:var(--share-header-max)}.crash-ui .controls{gap:var(--space-8);padding:var(--space-8)}.crash-ui .action{min-height:var(--tap-min);font-size:var(--type-24)}.crash-ui .multiplier{font-size:var(--type-24)}.crash-ui .controls{grid-template-columns:minmax(var(--web-short-stake-min-width),1fr) minmax(var(--web-short-presets-min-width),.8fr)}.crash-ui .stake{grid-column:1;grid-row:2}.crash-ui .actions{grid-column:2;grid-row:2}.crash-ui .dev{top:var(--space-16)}}
 /* Typography and surfaces follow the shipped HUD tokens. */
 .crash-ui .avatar{display:inline-block;vertical-align:middle}
 .crash-ui .records{background:var(--surface)}
@@ -107,7 +107,7 @@
 }
 .crash-ui .controls .stake .button{min-width:var(--tap-min);font-size:var(--type-16);padding:var(--space-4)}
 .crash-ui .controls .stake .money{font-size:var(--type-24)}
-.crash-ui .controls .settings-row,.crash-ui .controls .actions{gap:var(--web-control-gap)}
+.crash-ui .controls .actions{gap:var(--web-control-gap)}
 .crash-ui .controls .action{
  min-height:var(--web-control-action-height);
  border-radius:max(0px,calc(var(--panel-radius) - var(--control-padding)));
@@ -141,9 +141,9 @@
    that track, and the track lights when Auto is on. The button itself stays a button. */
 /* A game with no levels may put a Turbo switch in the level's place; with neither, Auto takes the row. */
 .crash-ui .tabbed-controls .difficulty-row.with-auto:not(:has(.turbo-switch)):has(.level-pick[hidden]){grid-template-columns:minmax(0,1fr)}
-.crash-ui :is(.tabbed-controls .difficulty-row.with-auto,.settings-row) .auto,
-.crash-ui :is(.tabbed-controls .difficulty-row.with-auto,.settings-row) .auto[aria-pressed=true]{min-width:0;justify-content:space-between;gap:var(--space-8);padding:var(--space-8) var(--space-8) var(--space-8) var(--space-16);color:var(--on-button);outline:0;border-radius:var(--radius-16);border:var(--stroke-1) solid color-mix(in srgb,var(--button-edge) calc(var(--alpha-strong) * 100%),transparent);background:linear-gradient(var(--button-top),var(--button-bottom));box-shadow:inset 0 0 0 var(--stroke-2) color-mix(in srgb,var(--button-edge) calc(var(--alpha-faint) * 100%),transparent),0 var(--web-control-depth) 0 var(--button-side)}
-.crash-ui :is(.tabbed-controls .difficulty-row.with-auto,.settings-row) .auto .auto-label{flex:1 1 auto;min-width:0;padding:0;text-align:left;overflow:hidden;text-overflow:ellipsis}
+.crash-ui :is(.tabbed-controls .difficulty-row.with-auto) .auto,
+.crash-ui :is(.tabbed-controls .difficulty-row.with-auto) .auto[aria-pressed=true]{min-width:0;justify-content:space-between;gap:var(--space-8);padding:var(--space-8) var(--space-8) var(--space-8) var(--space-16);color:var(--on-button);outline:0;border-radius:var(--radius-16);border:var(--stroke-1) solid color-mix(in srgb,var(--button-edge) calc(var(--alpha-strong) * 100%),transparent);background:linear-gradient(var(--button-top),var(--button-bottom));box-shadow:inset 0 0 0 var(--stroke-2) color-mix(in srgb,var(--button-edge) calc(var(--alpha-faint) * 100%),transparent),0 var(--web-control-depth) 0 var(--button-side)}
+.crash-ui :is(.tabbed-controls .difficulty-row.with-auto) .auto .auto-label{flex:1 1 auto;min-width:0;padding:0;text-align:left;overflow:hidden;text-overflow:ellipsis}
 .crash-ui .auto-switch{position:relative;flex:none}
 .crash-ui .tabbed-controls .difficulty-row .level-pick{justify-content:space-between;min-width:0;padding-inline:var(--space-16)}
 .crash-ui .tabbed-controls .difficulty-row .level-pick [data-slot=tbDifficulty]{overflow:hidden;text-overflow:ellipsis}
@@ -241,10 +241,9 @@
  .crash-ui .controls{grid-template-columns:minmax(var(--web-medium-stake-min-width),1.4fr) minmax(var(--web-medium-presets-min-width),1fr);align-items:center}
 }
 @media(min-width:960px){
- .crash-ui .controls .settings-row{grid-column:auto;grid-template-columns:var(--web-settings-column-compact-width) minmax(0,1fr);display:grid;gap:var(--space-8)}
  
  .crash-ui .controls .actions{grid-column:auto;align-self:stretch}
- .crash-ui .controls .action{min-height:var(--web-action-compact-height)}.crash-ui .controls>.settings-row{grid-column:auto;grid-row:auto}
+ .crash-ui .controls .action{min-height:var(--web-action-compact-height)}
  .crash-ui .controls{display:grid;grid-template-columns:var(--web-laptop-settings-column-width) minmax(var(--web-laptop-stake-min-width),1fr) minmax(var(--web-laptop-actions-min-width),.8fr)}
  .crash-ui .controls .actions{grid-column:3;grid-row:1/3}
 }
@@ -389,17 +388,6 @@
 .crash-ui .profile .level{display:block}
 .crash-ui .account .wins-head{min-height:var(--type-24);line-height:var(--type-24);margin-bottom:var(--space-12)}
 
-/* Operator features: disabled groups release their grid tracks instead of leaving gaps. */
-.crash-ui .controls.auto-only .settings-row{grid-template-columns:var(--web-settings-column-width);justify-content:start}
-.crash-ui .controls.difficulty-only .settings-row{grid-template-columns:minmax(0,1fr)}
-
-
-@media(min-width:960px){
- .crash-ui .controls.auto-only{grid-template-columns:var(--web-settings-column-compact-width) minmax(var(--web-laptop-stake-min-width),1fr) minmax(var(--web-laptop-actions-min-width),.8fr)}
- .crash-ui .controls.auto-only .settings-row{grid-template-columns:var(--web-settings-column-compact-width)}
- .crash-ui .controls.no-settings{grid-template-columns:minmax(var(--web-laptop-stake-min-width),1fr) minmax(var(--web-laptop-actions-min-width),.8fr)}
-}
-
 /* Paired phone actions need more breathing room than a full-width CTA. */
 @media(max-width:599px){
  .crash-ui .controls .actions:has(>[data-action=cash]:not([hidden])) .action-title{font-size:var(--type-24);gap:var(--space-8)}
@@ -409,42 +397,6 @@
 /* Action symbols retain their size in single/paired and desktop/mobile layouts. */
 .crash-ui .controls .action-title .icon{width:var(--type-32);height:var(--type-32)}
 
-/* Three independent positions share the standard panel, stake and raised actions. */
-.crash-ui .controls.multi-bet-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--web-control-gap);align-items:start}
-.crash-ui .multi-bet{display:grid;gap:var(--space-8);min-width:0}
-.crash-ui .bet-quote{text-align:center;color:var(--text-muted);font-size:var(--web-card-title-size)}
-.crash-ui .bet-quote strong{display:block;font:var(--type-24)/var(--leading-tight) var(--font-numbers),var(--font-body),sans-serif;color:var(--text)}
-.crash-ui .bet-receipt{color:var(--text-muted);font-size:var(--web-hud-meta-size);text-align:center;min-height:var(--space-32);display:flex;align-items:center;justify-content:center}
-.crash-ui .controls .bet-wager{grid-template-columns:var(--control-h) minmax(0,1fr) var(--control-h);gap:var(--space-4)}
-.crash-ui .bet-amount{width:100%;min-width:0;appearance:textfield;background:transparent;border:0;color:var(--text);padding:0;text-align:center;font:var(--type-24) var(--font-numbers),var(--font-body),sans-serif}
-.crash-ui .bet-amount::-webkit-inner-spin-button{appearance:none}
-.crash-ui .controls .bet-wager .bet-step{min-width:var(--tap-min);height:var(--control-h);padding:0;font-size:var(--web-control-step-icon-size);line-height:var(--leading-none)}
-.crash-ui .controls .bet-action{width:100%;min-width:0;white-space:normal;font-size:var(--type-24);line-height:var(--leading-tight)}
-.crash-ui .bet-action .action-title{font-size:inherit}
-.crash-ui .bet-action .money{font-size:var(--body-type-px);line-height:var(--leading-tight)}
-.crash-ui .bet-action.bet-info{background:var(--surface-inset);color:var(--text-muted);border-color:var(--border);box-shadow:none;font-size:var(--web-card-title-size)}
-.crash-ui .bet-action.bet-info::before,.crash-ui .bet-action.bet-info::after{display:none}
-.crash-ui .bet-action.bet-cancel{background:linear-gradient(var(--button-top),var(--button-bottom));color:var(--text);border-color:var(--focus)}
-.crash-ui .bet-won .bet-receipt,.crash-ui .bet-won .bet-action{color:var(--success)}
-.crash-ui .round-phase{text-align:center;color:var(--text-muted);font-size:var(--web-hud-meta-size);line-height:var(--leading-tight);background:var(--surface);border:var(--stroke-1) solid var(--border);border-radius:var(--radius-pill);padding:var(--space-4) var(--space-12)}
-@media(max-width:599px){
- .crash-ui .controls.multi-bet-controls{gap:var(--space-8);padding:var(--space-8);padding-bottom:calc(var(--space-8) + var(--web-control-depth))}
- .crash-ui .controls .bet-wager{padding:var(--space-4);padding-bottom:calc(var(--space-4) + var(--web-control-depth));grid-template-columns:repeat(2,minmax(var(--tap-min),1fr));gap:var(--space-4)}
- .crash-ui .bet-amount{grid-column:1/-1;grid-row:1;min-height:var(--space-32);font-size:var(--body-type-px)}
- .crash-ui .controls .bet-wager .bet-step{height:var(--tap-min)}
- .crash-ui .bet-quote strong{font-size:var(--type-24)}
- .crash-ui .controls .bet-action{font-size:var(--body-type-px)}
-}
-
-/* Three-position actions retain their geometry across BET/CANCEL/COLLECT. */
-.crash-ui .controls .bet-action{height:var(--web-control-action-height);min-height:var(--web-control-action-height);flex-direction:column;border-radius:var(--button-radius)}
-
-/* Shared optional settings row for the three-position panel. */
-.crash-ui .controls.multi-bet-controls>.settings-row{grid-column:1/-1;grid-row:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:var(--web-control-gap)}
-.crash-ui .controls.multi-bet-controls.auto-only>.settings-row,.crash-ui .controls.multi-bet-controls.difficulty-only>.settings-row{grid-template-columns:minmax(0,1fr)}
-.crash-ui .controls.multi-bet-controls>.settings-row>.button{min-width:0;width:100%}
-
-.crash-ui .controls.multi-bet-controls[class]{grid-template-columns:repeat(3,minmax(0,1fr))}
 /* Desktop side panels: the account card and the live-wins column take less of the scene. */
 @media(min-width:960px){
  .crash-ui .account,.crash-ui .account-column{max-width:var(--web-account-max-width)}
@@ -502,17 +454,12 @@
  .crash-ui .history{margin-top:var(--space-6)}
   .crash-ui .ladder-step{font-size:var(--type-12)}
  .crash-ui .multiplier{font-size:var(--type-24);padding:var(--space-4) var(--space-16);min-width:var(--web-compact-control-width)}
- .crash-ui .auto,.crash-ui .settings-row>.button{min-height:var(--tap-min)}
+ .crash-ui .auto{min-height:var(--tap-min)}
  
  .crash-ui .stake .button{min-height:var(--tap-min)}
  .crash-ui .stake .money{font-size:var(--type-24)}
  .crash-ui .action{min-height:var(--web-action-compact-height);font-size:var(--type-24)}
  .crash-ui .action .money,.crash-ui .action small{font-size:var(--type-16)}
- .crash-ui .controls .bet-action{height:var(--web-action-compact-height);min-height:var(--web-action-compact-height)}
- .crash-ui .bet-quote{font-size:var(--type-12)}
- .crash-ui .bet-quote strong{font-size:var(--type-16)}
- .crash-ui .bet-receipt{min-height:var(--space-24)}
- .crash-ui .controls.multi-bet-controls{padding:var(--space-8) var(--space-8) calc(var(--space-8) + var(--web-control-depth) + var(--safe-area-bottom,env(safe-area-inset-bottom)))}
  .crash-ui .dev{top:var(--dev-top,var(--web-dev-top-phone))}
 }
 
@@ -561,7 +508,7 @@
 .crash-ui .notice-text{margin:0;max-width:var(--web-account-popover-width);color:var(--text-muted);font-size:var(--type-16);line-height:var(--leading-body)}
 .crash-ui .notice-actions{display:grid;justify-items:center;gap:var(--space-8);width:100%;max-width:var(--web-account-popover-width);margin-top:var(--space-16)}
 .crash-ui .notice-actions .button{width:100%;min-height:var(--tap-min);border-radius:var(--radius-pill);font-size:var(--type-18);font-weight:var(--weight-bold)}
-.crash-ui .notice-actions .primary-button{color:var(--on-go);border:var(--stroke-1) solid var(--action-go-edge);background:linear-gradient(var(--action-go-top),var(--action-go-bottom));box-shadow:inset 0 0 0 var(--stroke-2) color-mix(in srgb,var(--action-go-edge) calc(var(--alpha-soft) * 100%),transparent),0 var(--web-control-depth) 0 var(--action-go-shadow)}
+.crash-ui :is(.notice-actions,.sheet-actions) .primary-button{color:var(--on-go);border:var(--stroke-1) solid var(--action-go-edge);background:linear-gradient(var(--action-go-top),var(--action-go-bottom));box-shadow:inset 0 0 0 var(--stroke-2) color-mix(in srgb,var(--action-go-edge) calc(var(--alpha-soft) * 100%),transparent),0 var(--web-control-depth) 0 var(--action-go-shadow)}
 /* The arrow rides with the label, a little above its baseline, the way a link mark does. */
 .crash-ui .leave-arrow{width:var(--type-20);height:var(--type-20);flex:none;margin-left:var(--space-8)}
 /* The balance is the way to the wallet, so it is built like the buttons beside it: the same
@@ -1153,6 +1100,30 @@
 .crash-ui .win-toast.is-center .win-flip{width:var(--space-48);height:var(--space-48)}
 .crash-ui .win-toast.is-center .win-toast-card>div>strong{font-size:var(--type-16)}
 .crash-ui .win-toast.is-center .win-toast-card>div>span{font-size:var(--type-32)}
+/* The compact toast (config.winToastCompact): a smaller card and mark, and the game's detail line
+   (state.winToastDetail) beside the amount, for a game whose board leaves little room above it. */
+.crash-ui .win-toast.is-compact .win-toast-card{gap:var(--space-8);padding:var(--space-6) var(--web-win-toast-compact-inline)}
+.crash-ui .win-toast.is-compact .win-flip{width:var(--web-win-toast-compact-flip);height:var(--web-win-toast-compact-flip)}
+.crash-ui .win-toast.is-compact .win-toast-card>div{display:grid;grid-template-columns:auto auto;align-items:baseline;column-gap:var(--space-8)}
+.crash-ui .win-toast.is-compact .win-toast-card>div>strong{grid-column:1/-1}
+.crash-ui .win-toast.is-compact .win-detail{grid-column:2;grid-row:2;margin:0;color:var(--text-muted);font-size:var(--type-12);line-height:var(--leading-tight);white-space:nowrap}
+.crash-ui .win-toast.is-compact .win-detail[hidden]{display:none}
+
+/* A message over the scene (GameUI.toast), where the win toast lands: one line on a pill, in the
+   surface's colours or a tone's. It pops in, stays, and lifts off. */
+.crash-ui .message-toast{position:absolute;top:var(--win-toast-top,calc(var(--space-48) + var(--space-24)));left:50%;transform:translateX(-50%);z-index:var(--layer-toast);box-sizing:border-box;max-width:calc(100% - var(--space-32));padding:var(--space-6) var(--space-16);border:var(--stroke-1) solid var(--border);border-radius:var(--radius-pill);background:var(--surface);color:var(--text);box-shadow:var(--elevation-panel);font-size:var(--type-14);font-weight:var(--weight-extrabold);line-height:var(--leading-tight);letter-spacing:var(--tracking-sm);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;animation:message-toast-enter var(--motion-toast-ms) var(--ease-enter) both}
+.crash-ui .message-toast[data-tone=gold]{color:var(--on-go);border-color:var(--action-go-edge);background:linear-gradient(var(--action-go-top),var(--action-go-bottom))}
+.crash-ui .message-toast[data-tone=success]{color:var(--on-success);border-color:var(--success);background:var(--success)}
+.crash-ui .message-toast[data-tone=danger]{color:var(--on-cash);border-color:var(--danger-edge);background:linear-gradient(var(--danger-top),var(--danger-bottom))}
+.crash-ui .message-toast.is-leaving{animation:message-toast-exit var(--motion-toast-ms) var(--ease-exit) both}
+@keyframes message-toast-enter{0%{scale:.8;opacity:0}100%{scale:1;opacity:1}}
+@keyframes message-toast-exit{0%{translate:0 0;opacity:1}100%{translate:0 calc(-1 * var(--space-12));opacity:0}}
+.crash-ui.reduced .message-toast{animation:none}
+@media(prefers-reduced-motion:reduce){.crash-ui .message-toast{animation:none}}
+
+/* A game's own window on the kit's sheet (GameUI.openSheet): the modal as it is, and its actions
+   in one row of equal buttons under the game's content, the primary one in gold as on a notice. */
+.crash-ui .sheet-actions{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:var(--space-8)}
 
 /* The settings popover in the tabbed shell is a small card next to its button, not a panel:
    a panel's 32px corner and comfort-height rows made it look inflated. A card corner, one
@@ -1265,7 +1236,7 @@
 /* A stake section a game placed in its own panel (GameUI.mountStake): only the section, laid
    out as it is in the kit's panel, without the kit layer's full-screen box. */
 .crash-ui.stake-mount{position:static;inset:auto;z-index:auto;pointer-events:auto;width:100%;min-width:0}
-.crash-ui.stake-mount>.controls.tabbed-controls.navigation-only{display:block;width:100%;padding:0;margin:0;background:none;border:0;box-shadow:none}
+.crash-ui.stake-mount>.controls.tabbed-controls.navigation-only{display:block;position:static;width:100%;max-width:none;padding:0;margin:0;background:none;border:0;box-shadow:none}
 /* The stake rolling to its new amount after MIN or MAX: steady digits, so it does not jitter. */
 .crash-ui .coin-amount[data-slot=tbBet]{font-variant-numeric:tabular-nums}
 /* Side actions (config.sideActions): squares beside the main action, as tall as the row it

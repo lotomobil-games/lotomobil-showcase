@@ -13,8 +13,14 @@ let currency='';
 // by the wording they use on it.
 // How high a multiplier reads: the same four tiers colour the live badge and the history.
 const tintFor=m=>Number(m)>=10?'gold':Number(m)>=5?'purple':Number(m)>=2?'success':'cyan';
-// Road lane markers belong to the scene and keep this palette across brands.
-const multiplierColour=(m,game)=>game==='road'?(Number(m)<=0?'var(--lane-lost)':'var(--lane-'+tintFor(m)+')'):'var(--'+tintFor(m)+')';
+// A multiplier's colour: the brand's four tiers, or, with config.multiplierPalette 'lane', the
+// lane markers' palette, which belongs to the scene and stays the same across brands.
+const multiplierColour=(m,palette)=>palette==='lane'?(Number(m)<=0?'var(--lane-lost)':'var(--lane-'+tintFor(m)+')'):'var(--'+tintFor(m)+')';
+// The game options' defaults (README, Game options): a game that passes an option decides, and no
+// game gets anything for its id.
+const DEFAULTS={multiplierPalette:'tier',cashReadyOnPress:false,goAmount:'subtitle',winPresentation:'window',multiplierPill:true,autoUnit:'sec',autoNote:'continuous'};
+// A game option as the kit applies it: the game's own, else the kit's default.
+const option=(config,name)=>config?.[name]!==undefined?config[name]:DEFAULTS[name];
 const goIsCash=s=>s.goCash!==undefined?!!s.goCash:s.goTitle==='CASH OUT';
 // A sum without its currency, written as money() writes it; the currency then goes beside it.
 const amountText=(v,digits=2)=>window.CrashI18n?.locale==='fr'||window.CrashI18n?.numberLocale?window.CrashI18n.number(Number(v||0),{minimumFractionDigits:digits,maximumFractionDigits:digits}):Number(v||0).toFixed(digits);
@@ -184,15 +190,16 @@ class BettingSound {
   return this.pools[file]=Array.from({length:3},()=>{const clip=new Audio();audioSrc(clip,file);clip.preload='auto';clip.preservesPitch=false;clip.volume=Number.isFinite(volume)?volume:0.14;return clip});
  }
  // Games differ in when cashing out becomes possible: after the first hop in LouLou, at
- // once in Big Haul. When it arrives on the press itself the chime would only double the
+ // once in others. When it arrives on the press itself the chime would only double the
  // play sound, and the button has already changed under the finger, so it is skipped.
  updateCashReady(state){
   const active=!!state.canCash&&(!!state.showCash||goIsCash(state))&&!state.win;
   const round=state.game+':'+state.rounds;
   const onThePress=performance.now()-this.pressedGo<BettingSound.PRESS_WINDOW_MS;
   if(this.game===state.game&&this.cashReady===false&&active&&this.chimedRound!==round){
-   // Road readiness follows landing, even when a fast API and hop take under 400ms.
-   if(state.game==='road'||!onThePress)this.play('cash-ready');
+   // config.cashReadyOnPress: readiness chimes even on the press itself, as LouLou's landing
+   // does when a fast API and hop take under 400ms (GameUI sets it from the game's config).
+   if(this.cashReadyOnPress===true||!onThePress)this.play('cash-ready');
    this.chimedRound=round;
   }
   this.game=state.game;this.cashReady=active;
@@ -203,7 +210,7 @@ class BettingSound {
  // What the player pressed, named as the manifest names it.
  // How close to the PLAY press a cash-ready state still counts as part of that press.
  static PRESS_WINDOW_MS=400;
- static EVENTS={go:'play',cash:'cashout',min:'stake_min',max:'stake_max',minus:'stake_minus',plus:'stake_plus',preset:'stake_preset',auto:'auto',turbo:'auto',difficulty:'difficulty',chooseDifficulty:'difficulty',rows:'difficulty',chooseOption:'difficulty',stake:'difficulty',chooseStake:'stake_preset',pickDifficulty:'difficulty_pick',leave:'header_click',account:'header_click',menu:'header_click',wallet:'header_click',notice:'confirm','cash-ready':'cash_ready'};
+ static EVENTS={go:'play',cash:'cashout',min:'stake_min',max:'stake_max',minus:'stake_minus',plus:'stake_plus',preset:'stake_preset',auto:'auto',turbo:'auto',difficulty:'difficulty',chooseDifficulty:'difficulty',rows:'difficulty',chooseOption:'difficulty',stake:'difficulty',chooseStake:'stake_preset',pickDifficulty:'difficulty_pick',leave:'header_click',account:'header_click',menu:'header_click',wallet:'header_click',notice:'confirm',sheetAction:'confirm','cash-ready':'cash_ready'};
  play(action){
   if(!this.enabled||document.hidden)return;
   const event=BettingSound.EVENTS[action];if(!event)return;
@@ -376,7 +383,8 @@ class TabbedControls {
   if(own.width>room)title.style.fontSize=Math.max(CrashTokens.TYPE_12,Math.floor(parseFloat(getComputedStyle(title).fontSize)*room/own.width))+'px';
  }
  sync(s,features,config={}){
-  const risk=this.q('.risk');const hasRisk=typeof s.risk==='number'&&Number.isFinite(s.risk);risk.hidden=!hasRisk&&s.game!=='road';risk.style.visibility='';
+  // config.riskRow: true shows the risk row always (at 0 % without a risk), false never; without it the row shows with a risk.
+  const risk=this.q('.risk');const hasRisk=typeof s.risk==='number'&&Number.isFinite(s.risk),riskRow=option(config,'riskRow',s.game);risk.hidden=riskRow===true?false:riskRow===false?true:!hasRisk;risk.style.visibility='';
   if(hasRisk){const pct=Math.round(Math.min(1,Math.max(0,s.risk))*100);this.text('riskPct',pct+' %');const lit=Math.round(pct/10);[...this.q('.risk-meter').children].forEach((seg,i)=>{seg.className=i<lit?'on tier-'+(i<3?'low':i<6?'mid':'high'):''})}else{this.text('riskPct','0 %');for(const seg of this.q('.risk-meter').children)seg.className=''}
   // With AUTO as a square beside the main action, the choice row keeps its plain choices.
   const sides=Array.isArray(config.sideActions)?config.sideActions:[];this.syncSides(s,sides);
@@ -399,23 +407,14 @@ class TabbedControls {
   go.classList.toggle('cash',asCash||s.goFace==='free');go.classList.toggle('is-stop',s.goFace==='stop');go.classList.toggle('is-skip',s.goFace==='skip');goTimerRing(go,countdownOf(s),urgentOf(s));
   // Mid-round the button is a step, not a stake: LouLou's GO, and any game that sends no subtitle.
   // state.goLabelOnly shows the title with its icon, and no amount, at any time (Plinko's DROP).
-  const nextLane=!!s.goLabelOnly||s.showCash&&(s.game==='road'||s.goSubtitle==='');const goFigure=(s.game==='road'&&!s.showCash)?s.bet:(s.goSubtitle||s.bet);coinSlot(this.slots.tbGoAmount,goFigure);this.slots.tbGoAmount.hidden=nextLane;this.slots.tbGoAmount.classList.toggle('is-label',!!s.showCash||!!s.goSubtitleIsLabel);this.text('tbGoTitle',s.goTitle||(nextLane?'GO':'BET'));this.slots.tbGoTitle.classList.toggle('go-label',!!nextLane);
+  // config.goAmount 'stake': the button shows the stake before the round and only its label during it, whatever subtitle the game sends.
+  const stakeOnGo=option(config,'goAmount',s.game)==='stake',nextLane=!!s.goLabelOnly||s.showCash&&(stakeOnGo||s.goSubtitle==='');const goFigure=(stakeOnGo&&!s.showCash)?s.bet:(s.goSubtitle||s.bet);coinSlot(this.slots.tbGoAmount,goFigure);this.slots.tbGoAmount.hidden=nextLane;this.slots.tbGoAmount.classList.toggle('is-label',!!s.showCash||!!s.goSubtitleIsLabel);this.text('tbGoTitle',s.goTitle||(nextLane?'GO':'BET'));this.slots.tbGoTitle.classList.toggle('go-label',!!nextLane);
   // The title is translated after it is written, so its fit is checked whenever it or the button changes size.
   if(!this.goFitObserver&&typeof ResizeObserver==='function'){this.goFitObserver=new ResizeObserver(()=>this.fitGoTitle());this.goFitObserver.observe(this.slots.tbGoTitle);this.goFitObserver.observe(this.slots.tbGoTitle.closest('button'))}
   const cash=this.q('[data-action=cash]');cash.hidden=!s.showCash;cash.disabled=!s.canCash||!!s.win;moneySlot(this.slots.tbCash,s.cash);// Only the figure decides whether an amount is long: a leading $ is not a digit, and a
   // plain $1056.82 was being shrunk as if it were a million.
   for(const key of ['tbCash','tbGoAmount'])this.slots[key].classList.toggle('long-amount',(this.slots[key].textContent.match(/\d/g)||[]).length>7);
   for(const t of this.tabs.children)t.disabled=!!s.win;
- }
-}
-class MultiBetControls {
- constructor(){
-  this.element=document.createElement('section');this.element.className='controls panel multi-bet-controls';this.element.setAttribute('aria-label','Three position betting controls');this.cards={};
-  for(const [key,name,amount] of [['left','LEFT WINS',5],['main','MAIN CATCH',8],['right','RIGHT WINS',5]]){
-   const el=document.createElement('section');el.className='multi-bet';el.setAttribute('aria-label',name);
-   el.innerHTML='<div class="bet-quote">'+name+'<strong>1.00×</strong></div><div class="bet-receipt">Choose your stake</div><div class="stake bet-wager"><button type="button" class="button bet-step" data-step="-1" aria-label="Decrease '+name+' stake">−</button><input class="bet-amount money" aria-label="'+name+' stake in dollars" type="number" inputmode="numeric" min="1" max="1000" step="1" value="'+amount+'"><button type="button" class="button bet-step" data-step="1" aria-label="Increase '+name+' stake">+</button></div><button type="button" class="button action bet-action"><span class="action-title">BET</span><span class="money">'+wager(amount)+'</span></button>';
-   this.element.append(el);this.cards[key]={el,input:el.querySelector('input'),button:el.querySelector('.bet-action')};
-  }
  }
 }
 class GameUI {
@@ -433,7 +432,9 @@ class GameUI {
  static setTheme(name){if(!(name in GameUI.themes))name='';if(name)document.documentElement.dataset.theme=name;else delete document.documentElement.dataset.theme;return name}
  static get theme(){return document.documentElement.dataset.theme||''}
  constructor(host,send,config={}){
-  this.host=host;this.send=send;this.config=config;GameUI.setBrand(config.brand||GameUI.queryBrand()||document.documentElement.dataset.brand||'default');GameUI.setTheme(config.theme||new URLSearchParams(location.search).get('theme')||document.documentElement.dataset.theme||'');this.state={};this.modal='';this.lastFocus=null;this.lastWins='';this.lastHistory='';this.bettingSound=new BettingSound(config.soundOverrides);this.winSound=new WinSound();
+  this.host=host;this.send=send;this.config=config;
+  // One shell for every game, the tabbed one: the header, and the panel's tabs along the bottom.
+  config.presentationPreset='tabbed-shell-v1';GameUI.setBrand(config.brand||GameUI.queryBrand()||document.documentElement.dataset.brand||'default');GameUI.setTheme(config.theme||new URLSearchParams(location.search).get('theme')||document.documentElement.dataset.theme||'');this.state={};this.modal='';this.lastFocus=null;this.lastWins='';this.lastHistory='';this.bettingSound=new BettingSound(config.soundOverrides);if(config.cashReadyOnPress!==undefined)this.bettingSound.cashReadyOnPress=!!config.cashReadyOnPress;this.winSound=new WinSound();
   if(!instance&&!config.demo){instance=this;window.CrashHost?.attach?.(this)}
   host.className='crash-ui'+(webp?'':' no-webp');host.innerHTML='<div class="top"><section class="account panel" aria-label="Player and records"><div class="profile"><button class="identity" data-action="account"><span data-slot="avatar"></span><span><strong>You</strong><span class="level" data-slot="level"></span></span></button>'+(config.balanceTopUp?'<button type="button" class="balance" data-action="wallet" aria-label="Balance">':'<div class="balance" aria-label="Balance">')+icon('coin.png')+'<span class="money" data-slot="balance"></span>'+(config.balanceTopUp?'</button>':'</div>')+'<button class="icon-button" data-action="menu" aria-label="Menu">'+icon('menu.svg')+'</button></div><section class="records"><div class="records-heading">'+icon('trophy.svg')+'<span>Your best</span></div><div class="records-line"><span class="money record-value personal" data-slot="personal"></span><div class="record-top"><span class="record-summary-label">Top</span><span class="money record-value" data-slot="top"></span><span class="record-by">by</span><span class="owner-name" data-slot="owner"></span></div></div></section><div class="history" aria-label="Round history"></div></section><section class="winners panel"><div class="wins-head"><strong>Live Wins</strong><span class="online"><span class="dot"></span><span data-slot="online"></span></span><button class="text-button" data-action="wins">See all ›</button></div><div class="wins-list"></div></section></div><div class="bottom"><div class="multiplier"></div></div><button class="dev" data-action="dev" hidden>DEV · UI</button><div class="toast" role="status" hidden></div><div class="modal-layer" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="crash-modal-title"><header><h2 id="crash-modal-title"></h2><button class="icon-button" data-action="close" aria-label="Close">'+icon('close.svg')+'</button></header><div class="modal-body"></div></section></div>';
   // A game whose round climbs a fixed table of steps shows them beside the scene. It is the
@@ -444,7 +445,7 @@ class GameUI {
   const account=host.querySelector('.account'),history=host.querySelector('.history'),column=document.createElement('div');
   column.className='account-column';account.before(column);column.append(account,history);
   this.slots=Object.fromEntries([...host.querySelectorAll('[data-slot]')].map(n=>[n.dataset.slot,n]));
-  host.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b&&!b.disabled)this.action(b.dataset.action,b.dataset.value);else {const control=e.target.closest('.bet-step,.bet-action');if(control&&!control.disabled)this.bettingSound.play(control.dataset.step==='-1'?'minus':control.dataset.step?'plus':'go')}});
+  host.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b&&!b.disabled)this.action(b.dataset.action,b.dataset.value)});
   // config.goRepeat: holding the main action repeats it after a moment (Plinko's DROP: hold
   // it and balls pour), {delay, interval} in ms or true for the defaults. Never as STOP, and
   // a hold that has poured swallows the click that ends it.
@@ -460,33 +461,28 @@ class GameUI {
    host.addEventListener('pointerout',e=>{if(e.target.closest?.('[data-action=go]')&&!e.target.closest('[data-action=go]').contains(e.relatedTarget))stop()});
    host.addEventListener('click',e=>{if(repeated&&e.target.closest('[data-action=go]')){repeated=false;e.stopImmediatePropagation()}},true);
   }
-  host.addEventListener('change',e=>{if(e.target.dataset.setting==='sound')this.bettingSound.setEnabled(e.target.checked);if(e.target.dataset.setting)this.send('setting',{key:e.target.dataset.setting,value:e.target.type==='checkbox'?e.target.checked:Number(e.target.value)});if(e.target.dataset.flag)this.send('flag',{key:e.target.dataset.flag,value:e.target.checked})});
+  host.addEventListener('change',e=>{if(e.target.dataset.setting==='sound')this.bettingSound.setEnabled(e.target.checked);if(e.target.dataset.setting)this.send('setting',{key:e.target.dataset.setting,value:e.target.type==='checkbox'?e.target.checked:Number(e.target.value)});if(['sound','music'].includes(e.target.dataset.setting))this.reportMute(e.target.dataset.setting,e.target.checked);if(e.target.dataset.flag)this.send('flag',{key:e.target.dataset.flag,value:e.target.checked})});
   this.dismissWinClick=e=>{if(this.modal!=='win')return;e.preventDefault();e.stopImmediatePropagation();this.dismissedWin=true;this.close(false);this.send('dismissWin',{})};document.addEventListener('click',this.dismissWinClick,true);
-  host.querySelector('.modal-layer').addEventListener('click',e=>{if(e.target===e.currentTarget&&this.modal!=='win')this.close()});
+  host.querySelector('.modal-layer').addEventListener('click',e=>{if(e.target===e.currentTarget&&this.modal!=='win'&&this.dismissible())this.close()});
   this.swipeToDismiss(host.querySelector('.modal-layer'));
-  this.keyHandler=e=>{if(!this.modal)return;if(e.target.matches?.('.segment')&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const tabs=[...e.target.parentElement.children],index=tabs.indexOf(e.target),next=e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;this.action(tabs[next].dataset.action,tabs[next].dataset.value);return;}if(['ArrowDown','ArrowUp','ArrowLeft','ArrowRight','Home','End'].includes(e.key)&&e.target.matches('[role=radio]')){e.preventDefault();const items=[...e.target.parentElement.querySelectorAll('[role=radio]')];let index=items.indexOf(e.target);index=e.key==='Home'?0:e.key==='End'?items.length-1:(index+(e.key==='ArrowDown'||e.key==='ArrowRight'?1:-1)+items.length)%items.length;items[index].focus();return;}if(e.key==='Escape'&&this.modal!=='win'){e.preventDefault();if(this.betDetail)this.backToBets();else if(this.modal.startsWith('limit:'))this.open('menu');else this.close()}if(e.key==='Tab'&&!this.contextPanel){const items=[...host.querySelectorAll('.modal-layer button,.modal-layer input,.modal-layer select')].filter(n=>!n.disabled&&!n.hidden&&n.getClientRects().length);if(!items.length){e.preventDefault();return}const first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}};
+  this.keyHandler=e=>{if(!this.modal)return;if(e.target.matches?.('.segment')&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const tabs=[...e.target.parentElement.children],index=tabs.indexOf(e.target),next=e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;this.action(tabs[next].dataset.action,tabs[next].dataset.value);return;}if(['ArrowDown','ArrowUp','ArrowLeft','ArrowRight','Home','End'].includes(e.key)&&e.target.matches('[role=radio]')){e.preventDefault();const items=[...e.target.parentElement.querySelectorAll('[role=radio]')];let index=items.indexOf(e.target);index=e.key==='Home'?0:e.key==='End'?items.length-1:(index+(e.key==='ArrowDown'||e.key==='ArrowRight'?1:-1)+items.length)%items.length;items[index].focus();return;}if(e.key==='Escape'&&this.modal!=='win'){e.preventDefault();if(!this.dismissible())return;if(this.betDetail)this.backToBets();else if(this.modal.startsWith('limit:'))this.open('menu');else this.close()}if(e.key==='Tab'&&!this.contextPanel){const items=[...host.querySelectorAll(this.modal==='sheet'?'.modal-layer :is(button,input,select,textarea,a[href],[tabindex="0"])':'.modal-layer button,.modal-layer input,.modal-layer select')].filter(n=>!n.disabled&&!n.hidden&&n.getClientRects().length);if(!items.length){e.preventDefault();return}const first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}};
   document.addEventListener('keydown',this.keyHandler);
   this.outsideMenu=e=>{if(['menu','account'].includes(this.modal)&&this.tabbed&&!this.q('.modal').contains(e.target)&&!this.q('.profile [data-action='+this.modal+']').contains(e.target))this.close(false)};
   document.addEventListener('pointerdown',this.outsideMenu,true);
   const embed=new URLSearchParams(location.search);
-  if(['standard','tabbed-shell-v1','menu-drawer-v1'].includes(embed.get('preset')))this.config.presentationPreset=embed.get('preset');
   this.embedFlags=Object.fromEntries(['leaderboard','history','personal_record','online_count','multiplier_ladder'].filter(key=>['0','1'].includes(embed.get(key))).map(key=>[key,embed.get(key)==='1']));
   // A game can make a feature compulsory (config.requiredFeatures): the embed's ?key=0 cannot switch it off.
   this.embedFeatures=Object.fromEntries(['auto','difficulty','presets'].filter(key=>['0','1'].includes(embed.get(key))&&!(this.config.requiredFeatures||[]).includes(key)).map(key=>[key,embed.get(key)==='1']));
-  // Auto and the level for the three-position panel, which shows them above its bets.
-  const settings=document.createElement('template');settings.innerHTML='<div class="settings-row">'+button('auto','<span class="auto-label">Auto</span><span class="auto-switch" aria-hidden="true"><span class="knob"></span></span>','auto')+button('difficulty','<span data-slot="difficulty"></span><svg class="chevron" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 10 8 6 12 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>')+'</div>';this.betSettings=settings.content.firstElementChild;
-  for(const n of this.betSettings.querySelectorAll('[data-slot]'))this.slots[n.dataset.slot]=n;
   this.setControlsVariant(config.controlsVariant);
-  this.resize=new ResizeObserver(()=>this.layout());this.resize.observe(host);this.resize.observe(host.querySelector('.account'));this.resize.observe(column);this.resize.observe(host.querySelector('.controls'));if(this.multiBet)this.resize.observe(this.multiBet.element);
+  this.resize=new ResizeObserver(()=>this.layout());this.resize.observe(host);this.resize.observe(host.querySelector('.account'));this.resize.observe(column);this.resize.observe(host.querySelector('.controls'));
  }
- setPresentationPreset(name='standard'){
-  if(!['standard','tabbed-shell-v1','menu-drawer-v1'].includes(name))throw new Error('Unknown presentation preset: '+name);
+ /** Kept for older callers: every game shows the tabbed shell, whatever is asked. */
+ setPresentationPreset(){
   if(this.modal)this.close(false);
-  this.config.presentationPreset=name;this.setControlsVariant(this.controlsVariant);
+  this.config.presentationPreset='tabbed-shell-v1';this.setControlsVariant(this.controlsVariant);
   if(this.state.game)this.update(this.state);
  }
- // 'tabbed' (every game's panel), 'three-position' (three bets at once) or 'none' (the game's
- // own panel). The kit's older standard panel is gone; a game that names it gets the tabbed one.
+ // 'tabbed' (every game's panel) or 'none' (the game's own panel). The kit's older standard panel is gone; a game that names it gets the tabbed one.
  setControlsVariant(variant='tabbed'){
   if(this.modal)this.close(false);
   if(!variant||variant==='standard')variant='tabbed';
@@ -505,13 +501,121 @@ class GameUI {
   if(tabbed&&!this.tabbed){this.tabbed=new TabbedControls();this.q('.bottom').append(this.tabbed.element);this.resize?.observe(this.tabbed.element)}
   if(!tabbed&&this.tabbed){this.resize?.unobserve(this.tabbed.element);this.tabbed.element.remove();this.tabbed=null}
   if(this.tabbed)this.tabbed.element.classList.toggle('navigation-only',variant!=='tabbed');
-  const multi=variant==='three-position';
-  if(multi&&!this.multiBet){this.multiBet=new MultiBetControls();this.q('.bottom').append(this.multiBet.element);this.resize?.observe(this.multiBet.element)}
-  if(multi)this.multiBet.element.prepend(this.betSettings);
-  else this.betSettings.remove();
-  if(!multi&&this.multiBet){this.resize?.unobserve(this.multiBet.element);this.multiBet.element.remove();this.multiBet=null}
  }
  q(s){return this.host.querySelector(s)}
+ /** A game option as the kit applies it: the game's config, else the kit's default. Composer reads the kit's choice through it. */
+ option(name){return option(this.config,name)}
+ /** The window open now ('topbets', 'mybets', 'rules', 'menu', 'sheet', …), or ''. */
+ get currentWindow(){return this.modal||''}
+ /** The kit's button sound for an action ('go', 'plus', 'notice', …), for a game's own buttons. */
+ playButtonSound(action){this.bettingSound.play(action)}
+ /**
+  * The rules window's text (config.rulesHTML) changed: the open window shows it at once, where it
+  * is scrolled to. A catalog rules document stays in front of it, as it always does.
+  */
+ setRules(html){this.config.rulesHTML=String(html??'');return this.refreshRules()}
+ /**
+  * Draws the open rules window again, keeping its scroll: the game's rules text, the document's
+  * live [[blocks]] (config.rulesBlocks), the pay table. False when the window is not open.
+  */
+ refreshRules(){
+  if(this.modal!=='rules')return false;
+  const body=this.q('.modal-body'),scroll=body.scrollTop,paged=this.hasPayTable();
+  if(paged&&this.rulesPage==='paytable'){this.payTableKey='';this.syncPayTable();return true}
+  const box=paged?body.querySelector('.rules-page'):body;
+  if(box&&!box.querySelector('[data-i18n-document]')){const back=box.querySelector(':scope>.back-button');box.innerHTML=this.config.rulesHTML||'<p class=muted>No rules provided.</p>';if(back)box.prepend(back)}
+  window.CrashI18n?.translate?.();body.scrollTop=scroll;return true;
+ }
+ /**
+  * Draws the open window again from the state, keeping its scroll: Top bets or My bets (not over a
+  * bet's details), Live Wins, the rules. For a list that arrives after its window opened. False
+  * when nothing that can be redrawn is open.
+  */
+ refreshWindow(){
+  const kind=this.modal,body=this.q('.modal-body');
+  if(kind==='rules')return this.refreshRules();
+  if((kind==='topbets'||kind==='mybets')&&!this.betDetail){const scroll=body.scrollTop;body.innerHTML=this.betTable(kind);body.scrollTop=scroll;return true}
+  if(kind==='wins'){const scroll=body.scrollTop;body.innerHTML=this.winRows(this.state.wins||[])||'<p class=muted>No wins yet.</p>';body.scrollTop=scroll;return true}
+  return false;
+ }
+ /**
+  * Calls fn when the window `kind` is scrolled to its end (within WEB_SCROLL_END_MARGIN), not over
+  * a bet's details: the next page of My bets. Returns the unsubscribe.
+  */
+ onScrollEnd(kind,fn){
+  const body=this.q('.modal-body');
+  const check=()=>{if(this.modal===kind&&!this.betDetail&&body.scrollTop+body.clientHeight>=body.scrollHeight-CrashTokens.WEB_SCROLL_END_MARGIN)fn()};
+  body.addEventListener('scroll',check,{passive:true});return()=>body.removeEventListener('scroll',check);
+ }
+ /**
+  * Opens a bet's details: `index` in My bets or Top bets as the list shows them, or, with 'history',
+  * the round history's chip `index` (its bet in state.bets), as a press on the chip does. True when
+  * the details are on screen.
+  */
+ openBetDetails(index,list='mybets'){
+  if(this.state.win)return false;
+  if(list==='history'){const entry=this.state.bets?.[Number(index)];if(!entry)return false;this.open('mybets');const at=this.betRows?.findIndex(v=>v.time===entry.time&&v.multiplier===entry.multiplier);if(at>=0)this.showBetDetails(at);return !!this.betDetail}
+  if(list!=='mybets'&&list!=='topbets')return false;
+  this.open(list);this.showBetDetails(Number(index));return !!this.betDetail;
+ }
+ /**
+  * A game's own window on the kit's sheet: the scrim, the focus kept inside, Escape, a hardware
+  * back and a pull down close it (unless `dismissible` is false), and the brand's look.
+  * {title, html | content, actions: [{label, primary}], onAction(index, sheet), onClose(),
+  * dismissible, className}. An action closes the sheet unless onAction returns false. Returns
+  * {element, close()}; the body is the game's to fill.
+  */
+ openSheet(spec={}){
+  const sheet={...spec},previous=this.modal==='sheet'?this.sheetSpec:null;
+  this.sheetSpec=sheet;if(previous)try{previous.onClose?.()}catch(error){console.error(error)}
+  this.open('sheet');
+  if(this.modal!=='sheet'){if(this.sheetSpec===sheet)this.sheetSpec=null;return null}
+  return {element:this.q('.modal-body'),close:()=>{if(this.modal==='sheet'&&this.sheetSpec===sheet)this.close()}};
+ }
+ /** Whether the open window may be closed by Escape, its backdrop, a pull or a hardware back. */
+ dismissible(){return !(this.modal==='sheet'&&this.sheetSpec?.dismissible===false)}
+ sheetAction(index){
+  const sheet=this.sheetSpec;if(this.modal!=='sheet'||!sheet)return;
+  const keep=sheet.onAction?.(index,{element:this.q('.modal-body'),close:()=>{if(this.sheetSpec===sheet)this.close()}});
+  if(keep!==false&&this.modal==='sheet'&&this.sheetSpec===sheet)this.close();
+ }
+ // A sheet ends once: it is forgotten, then its onClose runs.
+ endSheet(){const ended=this.sheetSpec;this.sheetSpec=null;if(ended)try{ended.onClose?.()}catch(error){console.error(error)}}
+ /**
+  * A message over the scene, just under the header where the win toast lands: {tone: 'neutral' |
+  * 'gold' | 'success' | 'danger', duration in ms}. Messages queue, one at a time, and a text
+  * already waiting is not added twice. Resolves once it has left.
+  */
+ toast(text,{tone='neutral',duration=CrashTokens.MOTION_MESSAGE_TOAST_MS}={}){
+  text=String(text??'');if(!text)return Promise.resolve();
+  this.messages??=[];const waiting=this.messages.find(m=>m.text===text);if(waiting)return waiting.done;
+  let resolve;const done=new Promise(r=>{resolve=r});this.messages.push({text,tone,duration,done,resolve});
+  if(!this.messageShown)this.nextMessage();
+  return done;
+ }
+ nextMessage(){
+  const m=this.messages?.[0];if(!m){this.messageShown=null;return}
+  const node=document.createElement('div');node.className='message-toast';node.dataset.tone=['gold','success','danger'].includes(m.tone)?m.tone:'neutral';node.setAttribute('role','status');node.textContent=m.text;
+  this.host.append(node);this.messageShown=node;
+  const reduced=this.state.settings?.reduced_motion||matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const finish=()=>{node.remove();this.messages.shift();m.resolve();this.nextMessage()};
+  this.messageTimer=setTimeout(()=>{if(reduced){finish();return}node.classList.add('is-leaving');this.messageTimer=setTimeout(finish,CrashTokens.MOTION_TOAST_MS)},Math.max(0,Number(m.duration)||0));
+ }
+ /** Clears the message on screen and any waiting. */
+ clearToasts(){clearTimeout(this.messageTimer);this.messageShown?.remove();this.messageShown=null;for(const m of this.messages||[])m.resolve();this.messages=[]}
+ /**
+  * The app's mute (host.js, inside the Lotomobil app only, when the game does not listen for it
+  * itself): the menu's sound switches follow it, as a press on them would.
+  */
+ applyHostMute(muted){
+  const keys=(this.config.menuSettings||['sound','music','haptics']).filter(k=>k==='sound'||k==='music');
+  for(const key of keys)if(this.state.settings?.[key]!==!muted)this.send('setting',{key,value:!muted});
+ }
+ // The player's switch, told to the app as one mute: muted once every sound switch is off.
+ reportMute(key,on){
+  const keys=(this.config.menuSettings||['sound','music','haptics']).filter(k=>k==='sound'||k==='music'),next={...this.state.settings,[key]:on};
+  window.CrashHost?.kitSoundChanged?.(keys.every(k=>!next[k]));
+ }
  /**
   * A game's own choice in the kit's option sheet, the one LouLou's levels use: {title,
   * head, options: [{title, reward, html}], selected, action}. A pick reaches the game as
@@ -549,7 +653,8 @@ class GameUI {
   this.bettingSound.play(action);
   if(action==='drawerTab'){this.rulesFrom='tab';this.open(value);return}
   if(action==='menu'&&this.config.presentationPreset==='menu-drawer-v1'){if(this.q('.modal-layer').classList.contains('is-menu-drawer')&&this.modal)this.close();else this.open(this.drawerSelection||'topbets');return}
-  if(action==='historyDetails'){const entry=this.state.bets?.[Number(value)];if(!entry||this.state.win)return;this.open('mybets');const index=this.betRows?.findIndex(v=>v.time===entry.time&&v.multiplier===entry.multiplier);if(index>=0)this.showBetDetails(index);return}
+  if(action==='historyDetails'){this.openBetDetails(Number(value),'history');return}
+  if(action==='sheetAction'){this.sheetAction(Number(value));return}
   if(action==='betDetails'){this.showBetDetails(Number(value));return}
   if(action==='wallet'){this.open('notice:wallet');return}
   if(action==='notice'){
@@ -588,7 +693,8 @@ class GameUI {
   // A win shows as a toast over the scene rather than as the win window: LouLou's way, and
   // any game's that asks for it with config.winPresentation='toast', or 'center' for the same
   // toast larger in the middle of the screen.
-  s={...s,flags:{...s.flags,...this.embedFlags},features:{...s.features,...this.embedFeatures},winToast:s.game==='road'||this.config.winPresentation==='toast'||this.config.winPresentation==='center'};
+  const presentation=this.option('winPresentation');
+  s={...s,flags:{...s.flags,...this.embedFlags},features:{...s.features,...this.embedFeatures},winToast:presentation==='toast'||presentation==='center'};
   window.CrashI18n?.setGame(s.game);
   this.winSound.update(s);
   this.bettingSound.setEnabled(s.settings?.sound===true);
@@ -605,26 +711,18 @@ class GameUI {
 
   this.text('personal',money(s.personal));this.text('top',money(s.record?.payout));this.text('owner',s.record?.name||'');this.q('.record-top').title=[s.record?.name,s.record?.date].filter(Boolean).join(' · ');
   const signature=JSON.stringify([s.players,s.record?.name,s.avatars]);if(signature!==this.avatarSignature){this.avatarSignature=signature;this.slots.avatar.innerHTML=avatar('You',s.players);this.slots.avatar.firstElementChild?.setAttribute('aria-hidden','true')}
-  this.text('difficulty',s.difficulties?.[s.difficulty]||'Normal');this.text('online',(s.online||6)+' ONLINE');
-  // Auto and the level above the three-position panel's bets.
-  const settingsAuto=this.betSettings.querySelector('[data-action=auto]');settingsAuto.setAttribute('aria-pressed',String(!!s.auto));
-  for(const b of this.betSettings.querySelectorAll('[data-action]'))b.disabled=!s.canBet;
+  this.text('online',(s.online||6)+' ONLINE');
   const flags=s.flags||{};this.q('.personal').hidden=false;this.q('.record-top').hidden=false;this.q('.records').hidden=!!this.tabbed||flags.personal_record===false;
   this.q('.winners').hidden=!!this.tabbed||flags.leaderboard===false;this.q('.history').hidden=flags.history===false;this.q('.online').hidden=flags.online_count===false;this.q('.dev').hidden=true;
   this.ladder(s.ladder,flags.multiplier_ladder!==false);
   if(this.modal==='rules')this.syncPayTable();
   if(this.tabbed)this.tabbed.sync(s,this.features(),this.config);
-  // Operator features remove whole groups; the grid releases their tracks.
-  const features=this.features(),controls=this.multiBet?.element,settingsVisible=features.auto||features.difficulty;
-  // On a phone the preset row stays away unless the embed asks for it (?presets=1): the bet stepper is enough there.
-  const presetsShown=features.presets&&(!matchMedia('(max-width:'+(CrashTokens.MODAL_PHONE_BREAKPOINT-1)+'px)').matches||new URLSearchParams(location.search).get('presets')==='1');
-  settingsAuto.hidden=!features.auto;this.betSettings.querySelector('[data-action=difficulty]').hidden=!features.difficulty;this.betSettings.hidden=!settingsVisible;
-  if(controls)controls.classList.toggle('no-settings',!settingsVisible);if(controls){controls.classList.toggle('auto-only',features.auto&&!features.difficulty);controls.classList.toggle('difficulty-only',features.difficulty&&!features.auto);controls.classList.toggle('no-presets',!presetsShown)}
+  const features=this.features();
   const featureKey=JSON.stringify(features);if(featureKey!==this.lastFeatures){const changed=this.lastFeatures!==undefined;this.lastFeatures=featureKey;const modal=this.modal||'';if((modal==='difficulty'&&!features.difficulty)||(modal.startsWith('limit:auto')&&!features.auto))this.close();else if(changed&&modal==='menu')this.open('menu')}
   const winsKey=JSON.stringify(s.wins);if(winsKey!==this.lastWins){this.lastWins=winsKey;this.q('.wins-list').innerHTML=this.winRows((s.wins||[]).slice(0,5));if(this.modal==='wins')this.q('.modal-body').innerHTML=this.winRows(s.wins||[])||'<p class=muted>No wins yet.</p>'}
-  const histKey=JSON.stringify([s.game,s.history,(Array.isArray(s.bets)?s.bets:[]).map(v=>v.time)]);if(histKey!==this.lastHistory){this.lastHistory=histKey;this.q('.history').innerHTML=(s.history||[]).slice(0,15).map((v,i)=>{const spoken=Number(v.multiplier).toFixed(2)+'×',value=this.config.historyMultiplierSign===false?spoken.slice(0,-1):spoken,colour=multiplierColour(v.multiplier,s.game);if(typeof v.cashed_out!=='boolean')return '<span style="color:'+colour+'" class="pill tier-'+tintFor(v.multiplier)+'">'+value+'</span>';const label=v.cashed_out?'Cashed out':'Lost',linked=!!s.bets?.[i],tag=linked?'button':'span';return '<'+tag+(linked?' type="button" data-action="historyDetails" data-value="'+i+'"':'')+' style="color:'+colour+'" class="pill history-result tier-'+tintFor(v.multiplier)+' '+(v.cashed_out?'is-cashout':'is-loss')+'" title="'+label+'" aria-label="'+label+', '+spoken+'"><svg class="history-result-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="'+(v.cashed_out?'M2 8.5 6 12.5 12 4.5':'M4.75 4.875 12 12.125M12 4.875 4.75 12.125')+'" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>'+value+'</span></'+tag+'>'}).join('')}
-  this.q('.multiplier').style.setProperty('--multiplier-color',multiplierColour(s.multiplier,s.game));
-  this.q('.multiplier').hidden=s.game==='road'||this.config.multiplierPill===false;this.q('.multiplier').textContent=Number(s.multiplier||1).toFixed(2)+'×';
+  const histKey=JSON.stringify([s.game,s.history,(Array.isArray(s.bets)?s.bets:[]).map(v=>v.time)]);if(histKey!==this.lastHistory){this.lastHistory=histKey;this.q('.history').innerHTML=(s.history||[]).slice(0,15).map((v,i)=>{const spoken=Number(v.multiplier).toFixed(2)+'×',value=this.config.historyMultiplierSign===false?spoken.slice(0,-1):spoken,colour=multiplierColour(v.multiplier,this.option('multiplierPalette'));if(typeof v.cashed_out!=='boolean'){const linked=!!s.bets?.[i]&&this.config.historyDetails===true;return linked?'<button type="button" data-action="historyDetails" data-value="'+i+'" style="color:'+colour+'" class="pill tier-'+tintFor(v.multiplier)+'" aria-label="'+spoken+'">'+value+'</button>':'<span style="color:'+colour+'" class="pill tier-'+tintFor(v.multiplier)+'">'+value+'</span>'}const label=v.cashed_out?'Cashed out':'Lost',linked=!!s.bets?.[i],tag=linked?'button':'span';return '<'+tag+(linked?' type="button" data-action="historyDetails" data-value="'+i+'"':'')+' style="color:'+colour+'" class="pill history-result tier-'+tintFor(v.multiplier)+' '+(v.cashed_out?'is-cashout':'is-loss')+'" title="'+label+'" aria-label="'+label+', '+spoken+'"><svg class="history-result-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="'+(v.cashed_out?'M2 8.5 6 12.5 12 4.5':'M4.75 4.875 12 12.125M12 4.875 4.75 12.125')+'" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>'+value+'</span></'+tag+'>'}).join('')}
+  this.q('.multiplier').style.setProperty('--multiplier-color',multiplierColour(s.multiplier,this.option('multiplierPalette')));
+  this.q('.multiplier').hidden=!this.option('multiplierPill');this.q('.multiplier').textContent=Number(s.multiplier||1).toFixed(2)+'×';
   this.q('.toast').hidden=!s.toast;this.q('.toast').textContent=s.toast||'';
   if(!s.win||this.dismissedWinId!==s.winId||this.dismissedWinGame!==s.game)this.dismissedWin=false;this.dismissedWinId=s.winId;this.dismissedWinGame=s.game;
   // The game raises a notice; the kit decides how it looks and what it says.
@@ -648,8 +746,9 @@ class GameUI {
   this.finishWinToast();
   this.heldWinBalance=this.slots.balance.dataset.full??this.slots.balance.textContent;
   this.winBalanceFrom=this.state.balanceKnown===false?null:Number(this.state.balance);
-  const toast=document.createElement('div');toast.className='win-toast'+(this.config.winPresentation==='center'?' is-center':'');toast.setAttribute('role','status');
-  const amount=s.winToastAmount??s.winAmount,multiplier=s.history?.[0]?.multiplier;
+  // config.winToastCompact: a smaller card, its detail line beside the amount (the slots' toast).
+  const toast=document.createElement('div');toast.className='win-toast'+(this.option('winPresentation')==='center'?' is-center':'')+(this.config.winToastCompact?' is-compact':'');toast.setAttribute('role','status');
+  const amount=s.winToastAmount??s.winAmount,multiplier=Number.isFinite(s.winToastMultiplier)?s.winToastMultiplier:s.history?.[0]?.multiplier;
   // The card sits inside a transparent wrapper so the bloom behind it can show around it.
   // The check flips over into the coin, and only then do the coins set off for the balance.
   toast.style.setProperty('--win-flip-at',WIN_FLIP_AT+'ms');toast.style.setProperty('--win-flip-ms',WIN_FLIP_MS+'ms');
@@ -669,7 +768,7 @@ class GameUI {
   clearTimeout(this.toastFlightTimer);clearTimeout(this.toastEndTimer);clearTimeout(this.toastHideTimer);
   toast.classList.remove('is-leaving');toast.classList.toggle('is-progress',progress);
   const content=toast.querySelector('.win-toast-card>div');
-  const multiplier=s.history?.[0]?.multiplier;
+  const multiplier=Number.isFinite(s.winToastMultiplier)?s.winToastMultiplier:s.history?.[0]?.multiplier;
   // The label is its own text, so the catalog's plain "BIG WIN" or "Cashed out" translates it;
   // the multiple beside it is a number and is left alone.
   {const strong=content.querySelector('strong'),parts=[document.createTextNode(s.winToastLabel||'WIN')];if(Number.isFinite(multiplier)){const m=document.createElement('span');m.className='win-multiple';m.dataset.noTranslate='';m.textContent=' · '+Number(multiplier).toFixed(2)+'×';parts.push(m)}strong.replaceChildren(...parts)}
@@ -817,12 +916,8 @@ class GameUI {
   return '<button type="button" class="radio-option" role="radio" data-action="'+action+'" data-value="'+esc(value)+'" aria-checked="'+selected+'" tabindex="'+(selected?0:-1)+'"><span class="radio-marker" aria-hidden="true"></span><span class="option-details"><span class="option-title">'+esc(title)+'</span>'+(description?'<span class="option-description">'+esc(description)+'</span>':'')+'</span>'+(reward?'<span class="option-reward"><span class="money">'+esc(reward)+'</span>'+(rewardLabel?'<span class="option-caption">'+esc(rewardLabel)+'</span>':'')+'</span>':'')+'</button>';
  }
  limitOptions(){
-  const s=this.state,result={auto_steps:{title:'Cash out after',values:[0,3,5,10,15,20],suffix:s.game==='road'?' steps':s.game==='boom'?' slices':' sec'},auto_cashout:{title:'Cash out at',values:[0,1.25,1.5,2,3,5,10,20],suffix:'×'}};
-  // Only for games whose scene actually repaints: Fuel Run draws painted art layers that a
-  // palette no longer touches, so the row offered a choice that changed nothing. Fruit Boom
-  // draws its atmosphere at random each session; the player no longer picks it.
-  if(!['road','fuel','boom'].includes(s.game))result.theme={title:'Next session atmosphere',values:s.game==='haul'?['Caribbean','Sunset']:['Treasure','Market'],suffix:''};
-  return result;
+  const s=this.state;
+  return {auto_steps:{title:'Cash out after',values:[0,3,5,10,15,20],suffix:' '+option(this.config,'autoUnit')},auto_cashout:{title:'Cash out at',values:[0,1.25,1.5,2,3,5,10,20],suffix:'×'}};
  }
  limitText(value,suffix){return value===0?'Off':String(value)+suffix}
  limitRow(key,option){const current=this.state.settings?.[key]??option.values[0];return '<div class="setting"><span>'+esc(option.title)+'</span><button class="button flat-button" data-action="limit" data-value="'+key+'">'+esc(this.limitText(current,option.suffix))+' <span aria-hidden="true">›</span></button></div>'}
@@ -945,7 +1040,9 @@ class GameUI {
  open(kind){
   // Composer opens a notice to read it: `notice:funds` picks which of the three to show.
   if(kind.startsWith('notice')){this.noticeKind=kind.slice(7)||this.noticeKind||'error';this.noticeFromState=!kind.includes(':');kind='notice'}
-  const s=this.state,f=this.features();if(kind==='difficulty'&&(!s.canBet||!f.difficulty))return;if(kind.startsWith('limit:auto')&&!f.auto)return;if(s.win&&kind!=='win')return;
+  const s=this.state,f=this.features();if(kind==='difficulty'&&(!s.canBet||!f.difficulty))return;if(kind.startsWith('limit:auto')&&!f.auto)return;if(s.win&&kind!=='win'&&!(kind==='sheet'&&this.modal!=='win'))return;
+  // A game's sheet gives way to whatever opens next; it hears that as its close.
+  if(this.modal==='sheet'&&kind!=='sheet')this.endSheet();
   const drawer=this.config.presentationPreset==='menu-drawer-v1'&&['menu','topbets','mybets','rules'].includes(kind);if(drawer){this.drawerSelection=kind;this.rulesFrom='tab'}
   this.clearBetDetails();
   if(!this.modal)this.lastFocus=document.activeElement;this.modal=kind;this.send('modal',{open:true});
@@ -954,7 +1051,10 @@ class GameUI {
   // screen (the CSS decides the breakpoint); the same modal from the menu stays a popup.
   layer.classList.toggle('is-sheet',!drawer&&!!this.tabbed&&(kind==='topbets'||kind==='mybets'||(kind==='rules'&&this.rulesFrom==='tab')));this.q('.modal').classList.toggle('win-modal',kind==='win');
   this.q('.modal h2').textContent={notice:NOTICES[this.noticeKind]?.title||NOTICES.error.title,menu:this.tabbed&&this.config.presentationPreset!=='menu-drawer-v1'?'Settings':'Menu',account:'Your account',wins:'Live Wins',difficulty:this.tabbed?'Difficulty':'Choose difficulty',stake:'Bet amount',options:this.optionSpec?.title||'',rules:'How to play',dev:'Visible panels',win:'NICE WIN!',topbets:this.betsTitle('topbets'),mybets:'My bets'}[kind];
-  this.q('[data-action=close]').hidden=kind==='win'&&!this.config.demo;
+  this.q('[data-action=close]').hidden=kind==='win'&&!this.config.demo||kind==='sheet'&&this.sheetSpec?.dismissible===false;
+  const sheetClass=kind==='sheet'&&typeof this.sheetSpec?.className==='string'?this.sheetSpec.className.split(/\s+/).filter(Boolean):[];
+  this.q('.modal').classList.remove(...(this.sheetClasses||[]));this.q('.modal').classList.toggle('game-sheet',kind==='sheet');this.q('.modal').classList.add(...sheetClass);this.sheetClasses=sheetClass;
+  if(kind==='sheet')this.q('.modal h2').textContent=this.sheetSpec?.title||'';
   const body=this.q('.modal-body');body.classList.toggle('rules-content',kind==='rules');
   // A game's own choice in the kit's option sheet (GameUI.openOptions): the level sheet's look,
   // the game's title, head and options; an option's trusted html sits between name and reward.
@@ -962,6 +1062,12 @@ class GameUI {
    const o=this.optionSpec||{},list=Array.isArray(o.options)?o.options:[];
    body.innerHTML=(o.head?'<div class="level-sheet-head" aria-hidden="true">'+esc(o.head)+'</div>':'')+'<div class="option-list level-sheet" role="radiogroup" aria-label="'+esc(o.title||'')+'">'+list.map((v,i)=>this.radioOption('chooseOption',i,i===o.selected,v.title,'',v.reward,'')).join('')+'</div>';
    body.querySelectorAll('.radio-option').forEach((option,i)=>{if(list[i]?.html)option.querySelector('.option-details')?.insertAdjacentHTML('afterend',list[i].html)});
+  }
+  // A game's own window on the kit's sheet (GameUI.openSheet): its trusted html or node, then its actions.
+  if(kind==='sheet'){
+   const o=this.sheetSpec||{},actions=Array.isArray(o.actions)?o.actions:[];
+   if(o.content instanceof Node)body.replaceChildren(o.content);else body.innerHTML=String(o.html??'');
+   if(actions.length)body.insertAdjacentHTML('beforeend','<div class="sheet-actions">'+actions.map((a,i)=>button('sheetAction',esc(a.label||''),a.primary?'primary-button':'flat-button').replace('data-action="sheetAction"','data-action="sheetAction" data-value="'+i+'"')).join('')+'</div>');
   }
   // The stake as a sheet of ready amounts: one tap instead of a run of +. A game may name its
   // own (state.stakeOptions); amounts over the balance are there but cannot be picked.
@@ -982,14 +1088,15 @@ class GameUI {
   if(kind==='menu'&&!this.tabbed){
    body.innerHTML=(this.config.menuSettings||['sound','music','haptics']).map(k=>'<label class="setting">'+({sound:'Sound',music:'Music',haptics:'Vibration',reduced_motion:'Reduce motion'}[k])+'<input class="switch" type="checkbox" role="switch" data-setting="'+k+'" '+(s.settings?.[k]?'checked':'')+'></label>').join('');
    const limits=this.limitOptions();
-   if(limits.theme)body.innerHTML+=this.limitRow('theme',limits.theme);
    if(f.auto){
     body.innerHTML+='<h3 class="modal-section-title">Auto limits</h3>';
     for(const key of ['auto_steps','auto_cashout'])body.innerHTML+=this.limitRow(key,limits[key]);
-    body.innerHTML+='<p class="modal-note"><span>First limit reached cashes out.</span> <span>'+(s.game==='road'?'Auto stops after each round.':'Auto starts the next round until switched off or balance is too low.')+'</span></p>';
+    // config.autoNote: 'round' (Auto stops after each round), 'continuous', false for none, or the game's own sentence.
+    const autoNote=option(this.config,'autoNote'),noteText=autoNote==='round'?'Auto stops after each round.':autoNote==='continuous'?'Auto starts the next round until switched off or balance is too low.':autoNote?String(autoNote):'';
+    body.innerHTML+='<p class="modal-note"><span>First limit reached cashes out.</span>'+(noteText?' <span>'+esc(noteText)+'</span>':'')+'</p>';
    }
    if(this.config.rulesHTML||window.CrashI18n?.rulesDocument?.())body.innerHTML+=button('rules','How to play','flat-button');
-   body.innerHTML+='<p class="modal-note centered">'+esc(this.config.menuNote||'Progress saved on this device')+'</p>';
+   if(this.config.menuNote!==false)body.innerHTML+='<p class="modal-note centered">'+esc(this.config.menuNote||'Progress saved on this device')+'</p>';
   }
   if(kind==='rules'){
    const rules=this.config.rulesHTML||'<p class=muted>No rules provided.</p>',paged=this.hasPayTable(),page=paged&&this.rulesPage==='paytable'?'paytable':'rules';
@@ -1027,7 +1134,7 @@ class GameUI {
     +'</div></div>';
   }
   if(kind==='wins')body.innerHTML=this.winRows(s.wins||[])||'<p class=muted>No wins yet.</p>';
-  if(kind==='dev')body.innerHTML=Object.entries({leaderboard:'Leaderboard / live wins',history:'Round history',personal_record:'My record',online_count:'Online count',...(s.game==='market_stack'?{multiplier_ladder:'Multiplier ladder'}:{})}).map(([k,v])=>'<label class="setting">'+v+'<input class="switch" type="checkbox" role="switch" data-flag="'+k+'" '+(s.flags?.[k]!==false?'checked':'')+'></label>').join('');
+  if(kind==='dev')body.innerHTML=Object.entries({leaderboard:'Leaderboard / live wins',history:'Round history',personal_record:'My record',online_count:'Online count'}).map(([k,v])=>'<label class="setting">'+v+'<input class="switch" type="checkbox" role="switch" data-flag="'+k+'" '+(s.flags?.[k]!==false?'checked':'')+'></label>').join('');
   if(kind==='win'){
    body.innerHTML=(this.tabbed?'<div class="win-emblem" aria-hidden="true"><span class="win-spark win-spark-left">✦</span>':'')+'<img class="win-coin" src="'+base+'assets/icons/coin.png'+version+'" alt="">'+(this.tabbed?'<span class="win-spark win-spark-right">✦</span></div>':'')+'<div class="win-total">'+money(s.winAmount)+'</div>'+(this.tabbed?'':'<div class="win-subtitle">'+esc(s.winSubtitle||'Well played!')+'</div>');
    if(!s.settings?.reduced_motion){const fx=document.createElement('div');fx.className='confetti';fx.innerHTML=Array.from({length:32},(_,i)=>'<i style="--angle:'+i*13+'deg;--x:'+((Math.random()-.5)*600)+'px;--y:'+(Math.random()*400-240)+'px"></i>').join('');layer.append(fx);setTimeout(()=>fx.remove(),CrashTokens.MOTION_CONFETTI_CLEAR_MS)}
@@ -1089,7 +1196,7 @@ class GameUI {
   }
 
   if(contextual&&innerWidth>=CrashTokens.CRASH_MEDIUM_BREAKPOINT){
-   const rail=this.tabbed.tabs.getBoundingClientRect(),controls=(this.multiBet?.element||this.tabbed.element).getBoundingClientRect();
+   const rail=this.tabbed.tabs.getBoundingClientRect(),controls=this.tabbed.element.getBoundingClientRect();
    const css=getComputedStyle(this.host),token=name=>parseFloat(css.getPropertyValue(name));
    const gap=token('--space-8'),edge=token('--space-16'),preferred=token('--web-context-panel-width');
    const left=rail.right+gap,beside=controls.left-left-gap;
@@ -1097,7 +1204,7 @@ class GameUI {
    // the window may extend above them, but never across their action buttons.
    const fitsBeside=beside>=6*token('--web-control-comfort-height');
    const width=Math.min(preferred,innerWidth-left-edge,fitsBeside?beside:preferred);
-   const actions=(this.multiBet?.element||this.tabbed.q('.actions')).getBoundingClientRect();
+   const actions=this.tabbed.q('.actions').getBoundingClientRect();
    const bottom=fitsBeside?innerHeight-edge:Math.min(innerHeight-edge,actions.top-gap);
    // One height cap across desktop and intermediate layouts; scroll the content.
    const height=Math.min(preferred+2*token('--space-48'),bottom-edge);
@@ -1117,6 +1224,7 @@ class GameUI {
  back(){
   if(!this.modal)return false;
   if(this.modal==='win'){this.dismissedWin=true;this.close(false);this.send('dismissWin',{});return true}
+  if(!this.dismissible())return true;
   if(this.betDetail)this.backToBets();else if(this.modal.startsWith('limit:'))this.open('menu');else this.close();
   return true;
  }
@@ -1155,7 +1263,7 @@ class GameUI {
   };
   layer.addEventListener('touchend',end);layer.addEventListener('touchcancel',end);
  }
- close(restoreFocus=true){this.q('.profile [data-action=account]').setAttribute('aria-expanded','false');this.q('.profile [data-action=menu]').setAttribute('aria-expanded','false');this.clearBetDetails();this.contextPanel=false;this.restoreTabs();this.clearWinCoins();this.modal='';this.q('.modal-layer').hidden=true;for(const n of [this.q('.top'),this.q('.bottom'),this.q('.dev')])n.inert=false;this.send('modal',{open:false});if(restoreFocus&&this.lastFocus?.isConnected)this.lastFocus.focus()}
+ close(restoreFocus=true){const wasSheet=this.modal==='sheet';this.q('.modal').classList.remove('game-sheet',...(this.sheetClasses||[]));this.sheetClasses=[];this.q('.profile [data-action=account]').setAttribute('aria-expanded','false');this.q('.profile [data-action=menu]').setAttribute('aria-expanded','false');this.clearBetDetails();this.contextPanel=false;this.restoreTabs();this.clearWinCoins();this.modal='';this.q('.modal-layer').hidden=true;for(const n of [this.q('.top'),this.q('.bottom'),this.q('.dev')])n.inert=false;this.send('modal',{open:false});if(restoreFocus&&this.lastFocus?.isConnected)this.lastFocus.focus();if(wasSheet)this.endSheet()}
  /**
   * The steps of a climbing round, highest at the top. `data` is {steps,current}: the
   * multipliers to show and which of them the round stands on. Steps under the current one
@@ -1182,16 +1290,13 @@ class GameUI {
   const history=this.q('.history'),historyRect=history.getBoundingClientRect();
   this.host.style.setProperty('--win-toast-top',(historyRect.height>0?historyRect.top-this.host.getBoundingClientRect().top:CrashTokens.WEB_WIN_TOAST_TOP)+'px');
   this.host.style.setProperty('--dev-top',(Math.max(a.bottom,wide?winners.getBoundingClientRect().bottom:0)+CrashTokens.SPACE_8)+'px');
-  // The fishing boat occupies the right side; reserve the taller Live Wins panel too.
-  const sceneTop=this.state.game==='gold'?account.getBoundingClientRect().bottom:
-   ['haul','catch'].includes(this.state.game)&&wide?Math.max(a.bottom,winners.getBoundingClientRect().bottom):a.bottom;
-  const bounds={top:Math.round(sceneTop+12),bottom:Math.round(b.top),width:innerWidth,height:innerHeight};
+  const bounds={top:Math.round(a.bottom+12),bottom:Math.round(b.top),width:innerWidth,height:innerHeight};
   this.host.style.setProperty('--scene-top',bounds.top+'px');
   this.host.style.setProperty('--scene-bottom',bounds.bottom+'px');
   const key=JSON.stringify(bounds);if(key!==this.lastBounds){this.lastBounds=key;this.send('layout',bounds)}
  }
- destroy(){this.balancePulse?.cancel();this.finishWinToast();document.removeEventListener('click',this.dismissWinClick,true);this.winSound.destroy();this.bettingSound.destroy();this.clearWinCoins();this.resize.disconnect();document.removeEventListener('keydown',this.keyHandler);document.removeEventListener('pointerdown',this.outsideMenu,true);this.host.remove()}
+ destroy(){this.balancePulse?.cancel();this.finishWinToast();this.clearToasts();document.removeEventListener('click',this.dismissWinClick,true);this.winSound.destroy();this.bettingSound.destroy();this.clearWinCoins();this.resize.disconnect();document.removeEventListener('keydown',this.keyHandler);document.removeEventListener('pointerdown',this.outsideMenu,true);this.host.remove()}
 }
 let callback=null,instance=null;
-window.CrashUI={presentationPresets:Object.freeze({'menu-drawer-v1':Object.freeze({id:'menu-drawer-v1',title:'Menu tabs',version:1,scope:'header-navigation-windows'}),'tabbed-shell-v1':Object.freeze({id:'tabbed-shell-v1',title:'Bottom tabs',version:1,scope:'header-navigation-windows'})}),GameUI,MultiBetControls,connect(fn,config={}){callback=fn;if(!instance){const host=document.createElement('div');host.hidden=true;document.body.append(host);instance=new GameUI(host,(action,data)=>callback?.(JSON.stringify({action,...data})),config);}return true},receive(state){instance?.update(typeof state==='string'?JSON.parse(state):state)},get instance(){return instance}};
+window.CrashUI={presentationPresets:Object.freeze({'tabbed-shell-v1':Object.freeze({id:'tabbed-shell-v1',title:'Bottom tabs',version:1,scope:'header-navigation-windows'})}),GameUI,connect(fn,config={}){callback=fn;if(!instance){const host=document.createElement('div');host.hidden=true;document.body.append(host);instance=new GameUI(host,(action,data)=>callback?.(JSON.stringify({action,...data})),config);}return true},receive(state){instance?.update(typeof state==='string'?JSON.parse(state):state)},get instance(){return instance}};
 })();
