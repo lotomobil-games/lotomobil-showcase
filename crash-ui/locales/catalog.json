@@ -199,12 +199,13 @@
       "games": [],
       "ht": "Règ",
       "usage": [
-        "text"
+        "unused"
       ],
       "presets": [
         "menu-drawer-v1"
       ],
-      "previewWindow": "rules"
+      "previewWindow": "rules",
+      "unusedReason": "The menu drawer is gone: every game shows the tabbed shell."
     },
     "bet_panels_21dcde": {
       "source": "Bet panels",
@@ -733,8 +734,7 @@
       "games": [],
       "ht": "Meni",
       "usage": [
-        "text",
-        "aria-label"
+        "unused"
       ],
       "previewWindow": "menu",
       "usageByGame": {
@@ -746,7 +746,8 @@
         "road": [
           "menu-drawer-v1"
         ]
-      }
+      },
+      "unusedReason": "The menu drawer is gone: every game shows the tabbed shell."
     },
     "your_account_4ab291": {
       "source": "Your account",
@@ -5623,12 +5624,13 @@
         "mopyon_cascades"
       ],
       "usage": [
-        "text"
+        "unused"
       ],
       "presets": [
         "tabbed-shell-v1"
       ],
-      "previewWindow": "menu"
+      "previewWindow": "menu",
+      "unusedReason": "Mòpyon Cascades has one look, graph paper: the look picker is gone."
     },
     "paper_22d507": {
       "source": "Paper",
@@ -5640,12 +5642,13 @@
         "mopyon_cascades"
       ],
       "usage": [
-        "text"
+        "unused"
       ],
       "presets": [
         "tabbed-shell-v1"
       ],
-      "previewWindow": "menu"
+      "previewWindow": "menu",
+      "unusedReason": "Mòpyon Cascades has one look, graph paper: the look picker is gone."
     },
     "now_low_rows_rows_b28d8d": {
       "source": "Now: Low, {rows} rows",
@@ -6202,12 +6205,13 @@
       "ht": "Seksyon meni an",
       "group": "Settings",
       "usage": [
-        "aria-label"
+        "unused"
       ],
       "presets": [
         "menu-drawer-v1"
       ],
-      "previewWindow": "menu"
+      "previewWindow": "menu",
+      "unusedReason": "The menu drawer is gone: every game shows the tabbed shell."
     },
     "started_at_value_bet_bet_c76238": {
       "source": "started at {value}× · bet {bet} P",

@@ -99,7 +99,7 @@ const stakeRow=(press,amountAction,slot)=>'<div class="stake" aria-label="Bet am
 const levelButtons=(names,action)=>names.map((n,i)=>'<button type="button" class="button" role="radio" data-action="'+action+'" data-value="'+i+'">'+esc(n)+'</button>').join('');
 // Marks the chosen level in such a row; `locked` while a round is under way.
 const markLevel=(row,index,locked)=>{for(const b of row.querySelectorAll('[role=radio]')){const on=Number(b.dataset.value)===index;b.setAttribute('aria-pressed',String(on));b.setAttribute('aria-checked',String(on));b.disabled=!!locked}};
-// The section switch the menu drawer and the rules window share: one segment per section, the
+// The rules window's section switch: one segment per section, the
 // chosen one lit. `cls` names where it sits; `panel`, when given, is the id of what it switches.
 const segmented=(cls,label,items,selected,action,panel)=>{
  const nav=document.createElement('div');nav.className='segmented '+cls;nav.setAttribute('role','tablist');nav.setAttribute('aria-label',label);
@@ -487,10 +487,9 @@ class GameUI {
   if(this.modal)this.close(false);
   if(!variant||variant==='standard')variant='tabbed';
   this.controlsVariant=variant;
-  const tabbed=variant==='tabbed'||['tabbed-shell-v1','menu-drawer-v1'].includes(this.config.presentationPreset);
+  const tabbed=variant==='tabbed'||this.config.presentationPreset==='tabbed-shell-v1';
   this.host.classList.toggle('has-tabbed-controls',tabbed);
-  this.host.classList.toggle('has-menu-drawer',this.config.presentationPreset==='menu-drawer-v1');
-  const settingsOnly=tabbed&&this.config.presentationPreset!=='menu-drawer-v1',menuButton=this.q('.profile [data-action=menu]');
+  const settingsOnly=tabbed,menuButton=this.q('.profile [data-action=menu]');
   menuButton.setAttribute('aria-label',settingsOnly?'Sound':'Menu');
   menuButton.innerHTML=settingsOnly?SPEAKER_SVG:icon('menu.svg');
   this.q('.account').setAttribute('aria-label',tabbed?'Player account':'Player and records');
@@ -605,11 +604,17 @@ class GameUI {
  clearToasts(){clearTimeout(this.messageTimer);this.messageShown?.remove();this.messageShown=null;for(const m of this.messages||[])m.resolve();this.messages=[]}
  /**
   * The app's mute (host.js, inside the Lotomobil app only, when the game does not listen for it
-  * itself): the menu's sound switches follow it, as a press on them would.
+  * itself): the menu's sound switches follow it, as a press on them would. A mute remembers the
+  * switches the player had and the unmute gives them back, so Music the player turned off stays
+  * off; with nothing to give back, the unmute turns Sound on.
   */
  applyHostMute(muted){
   const keys=(this.config.menuSettings||['sound','music','haptics']).filter(k=>k==='sound'||k==='music');
-  for(const key of keys)if(this.state.settings?.[key]!==!muted)this.send('setting',{key,value:!muted});
+  const now=Object.fromEntries(keys.map(k=>[k,!!this.state.settings?.[k]])),some=v=>keys.some(k=>v[k]);
+  let want;
+  if(muted){if(some(now))this.hostMuteBefore=now;want=Object.fromEntries(keys.map(k=>[k,false]))}
+  else{const before=this.hostMuteBefore;this.hostMuteBefore=null;want=before&&some(before)?before:some(now)?now:Object.fromEntries(keys.map(k=>[k,k==='sound']))}
+  for(const key of keys)if(this.state.settings?.[key]!==want[key])this.send('setting',{key,value:want[key]});
  }
  // The player's switch, told to the app as one mute: muted once every sound switch is off.
  reportMute(key,on){
@@ -651,8 +656,6 @@ class GameUI {
   // it there is nowhere defined to go, so the button stays inert and the game never hears it.
   if(action==='leave'){if(window.CrashHost?.active){this.bettingSound.play(action);window.CrashHost.home()}return}
   this.bettingSound.play(action);
-  if(action==='drawerTab'){this.rulesFrom='tab';this.open(value);return}
-  if(action==='menu'&&this.config.presentationPreset==='menu-drawer-v1'){if(this.q('.modal-layer').classList.contains('is-menu-drawer')&&this.modal)this.close();else this.open(this.drawerSelection||'topbets');return}
   if(action==='historyDetails'){this.openBetDetails(Number(value),'history');return}
   if(action==='sheetAction'){this.sheetAction(Number(value));return}
   if(action==='betDetails'){this.showBetDetails(Number(value));return}
@@ -1043,14 +1046,13 @@ class GameUI {
   const s=this.state,f=this.features();if(kind==='difficulty'&&(!s.canBet||!f.difficulty))return;if(kind.startsWith('limit:auto')&&!f.auto)return;if(s.win&&kind!=='win'&&!(kind==='sheet'&&this.modal!=='win'))return;
   // A game's sheet gives way to whatever opens next; it hears that as its close.
   if(this.modal==='sheet'&&kind!=='sheet')this.endSheet();
-  const drawer=this.config.presentationPreset==='menu-drawer-v1'&&['menu','topbets','mybets','rules'].includes(kind);if(drawer){this.drawerSelection=kind;this.rulesFrom='tab'}
   this.clearBetDetails();
   if(!this.modal)this.lastFocus=document.activeElement;this.modal=kind;this.send('modal',{open:true});
-  const layer=this.q('.modal-layer');layer.hidden=false;layer.classList.toggle('is-win',kind==='win');layer.classList.toggle('is-menu-drawer',drawer);layer.classList.toggle('is-menu-popover',!drawer&&['menu','account'].includes(kind)&&!!this.tabbed);layer.classList.toggle('is-account-popover',kind==='account'&&!!this.tabbed);
+  const layer=this.q('.modal-layer');layer.hidden=false;layer.classList.toggle('is-win',kind==='win');layer.classList.toggle('is-menu-popover',['menu','account'].includes(kind)&&!!this.tabbed);layer.classList.toggle('is-account-popover',kind==='account'&&!!this.tabbed);
   // From the tabbed variant's side buttons these open as a sheet from the right on a wide
   // screen (the CSS decides the breakpoint); the same modal from the menu stays a popup.
-  layer.classList.toggle('is-sheet',!drawer&&!!this.tabbed&&(kind==='topbets'||kind==='mybets'||(kind==='rules'&&this.rulesFrom==='tab')));this.q('.modal').classList.toggle('win-modal',kind==='win');
-  this.q('.modal h2').textContent={notice:NOTICES[this.noticeKind]?.title||NOTICES.error.title,menu:this.tabbed&&this.config.presentationPreset!=='menu-drawer-v1'?'Settings':'Menu',account:'Your account',wins:'Live Wins',difficulty:this.tabbed?'Difficulty':'Choose difficulty',stake:'Bet amount',options:this.optionSpec?.title||'',rules:'How to play',dev:'Visible panels',win:'NICE WIN!',topbets:this.betsTitle('topbets'),mybets:'My bets'}[kind];
+  layer.classList.toggle('is-sheet',!!this.tabbed&&(kind==='topbets'||kind==='mybets'||(kind==='rules'&&this.rulesFrom==='tab')));this.q('.modal').classList.toggle('win-modal',kind==='win');
+  this.q('.modal h2').textContent={notice:NOTICES[this.noticeKind]?.title||NOTICES.error.title,menu:this.tabbed?'Settings':'Menu',account:'Your account',wins:'Live Wins',difficulty:this.tabbed?'Difficulty':'Choose difficulty',stake:'Bet amount',options:this.optionSpec?.title||'',rules:'How to play',dev:'Visible panels',win:'NICE WIN!',topbets:this.betsTitle('topbets'),mybets:'My bets'}[kind];
   this.q('[data-action=close]').hidden=kind==='win'&&!this.config.demo||kind==='sheet'&&this.sheetSpec?.dismissible===false;
   const sheetClass=kind==='sheet'&&typeof this.sheetSpec?.className==='string'?this.sheetSpec.className.split(/\s+/).filter(Boolean):[];
   this.q('.modal').classList.remove(...(this.sheetClasses||[]));this.q('.modal').classList.toggle('game-sheet',kind==='sheet');this.q('.modal').classList.add(...sheetClass);this.sheetClasses=sheetClass;
@@ -1139,18 +1141,12 @@ class GameUI {
    body.innerHTML=(this.tabbed?'<div class="win-emblem" aria-hidden="true"><span class="win-spark win-spark-left">✦</span>':'')+'<img class="win-coin" src="'+base+'assets/icons/coin.png'+version+'" alt="">'+(this.tabbed?'<span class="win-spark win-spark-right">✦</span></div>':'')+'<div class="win-total">'+money(s.winAmount)+'</div>'+(this.tabbed?'':'<div class="win-subtitle">'+esc(s.winSubtitle||'Well played!')+'</div>');
    if(!s.settings?.reduced_motion){const fx=document.createElement('div');fx.className='confetti';fx.innerHTML=Array.from({length:32},(_,i)=>'<i style="--angle:'+i*13+'deg;--x:'+((Math.random()-.5)*600)+'px;--y:'+(Math.random()*400-240)+'px"></i>').join('');layer.append(fx);setTimeout(()=>fx.remove(),CrashTokens.MOTION_CONFETTI_CLEAR_MS)}
   }
-  this.q('.drawer-sections')?.remove();
   this.q('[data-action=close]').innerHTML=icon('close.svg');
   if(this.tabbed){this.q('[data-action=close]').innerHTML='<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m4 4 16 16M20 4 4 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';}
-  const drawerBody=this.q('.modal-body');drawerBody.removeAttribute('role');drawerBody.removeAttribute('aria-labelledby');drawerBody.removeAttribute('id');
-  if(drawer){
-   const nav=segmented('drawer-sections','Menu sections',[['topbets','Top bets'],['mybets','My bets'],['rules','Rules'],['menu','Settings']],kind,'drawerTab','drawer-panel');
-   drawerBody.before(nav);drawerBody.id='drawer-panel';drawerBody.setAttribute('role','tabpanel');drawerBody.setAttribute('aria-labelledby','drawer-panel-'+kind);this.q('.modal h2').textContent=kind==='menu'?'Settings':kind==='rules'?'Rules':this.betsTitle(kind);
-  }
   // The two pages' switch sits above the scrolling page, so it stays in view while the page scrolls.
   this.q('.rules-pages')?.remove();
   if(kind==='rules'&&this.hasPayTable())this.q('.modal-body').before(segmented('rules-pages','Rules',[['rules','How to play'],['paytable','Pay table']],this.rulesPage==='paytable'?'paytable':'rules','rulesPage'));
-  const tabView=!drawer&&!!this.tabbed&&['topbets','mybets','rules'].includes(kind)&&(kind!=='rules'||this.rulesFrom==='tab');
+  const tabView=!!this.tabbed&&['topbets','mybets','rules'].includes(kind)&&(kind!=='rules'||this.rulesFrom==='tab');
   layer.classList.toggle('is-tab-view',tabView);
   layer.classList.toggle('is-rules-panel',tabView&&kind==='rules');
   layer.classList.toggle('is-bets-panel',!!this.tabbed&&['topbets','mybets'].includes(kind));
@@ -1168,7 +1164,7 @@ class GameUI {
   this.tabPresentation();
   const history=this.q('.history'),historyRect=history.getBoundingClientRect();
   this.host.style.setProperty('--win-toast-top',(historyRect.height>0?historyRect.top-this.host.getBoundingClientRect().top:CrashTokens.WEB_WIN_TOAST_TOP)+'px');
-  requestAnimationFrame(()=>{const target=drawer?layer.querySelector('[role=tab][aria-selected=true]'):layer.querySelector('button:not([hidden]),input,select');if(target)target.focus({preventScroll:true});else{this.q('.modal').tabIndex=-1;this.q('.modal').focus()}});
+  requestAnimationFrame(()=>{const target=layer.querySelector('button:not([hidden]),input,select');if(target)target.focus({preventScroll:true});else{this.q('.modal').tabIndex=-1;this.q('.modal').focus()}});
  }
  tabPresentation(){
   const layer=this.q('.modal-layer');
@@ -1176,8 +1172,7 @@ class GameUI {
   const menuPopover=!!this.modal&&layer.classList.contains('is-menu-popover');
   this.contextPanel=contextual||menuPopover;layer.classList.toggle('is-context-panel',contextual);
   const menu=this.q('.profile [data-action=menu]');
-  menu.setAttribute('aria-expanded',String(this.modal==='menu'||!!this.modal&&layer.classList.contains('is-menu-drawer')));menu.setAttribute('aria-haspopup','dialog');
-  if(layer.classList.contains('is-menu-drawer')){const rect=menu.getBoundingClientRect();layer.style.setProperty('--drawer-menu-top',rect.top+'px');layer.style.setProperty('--drawer-menu-right',(innerWidth-rect.right)+'px')}
+  menu.setAttribute('aria-expanded',String(this.modal==='menu'));menu.setAttribute('aria-haspopup','dialog');
   const account=this.q('.profile [data-action=account]');account.setAttribute('aria-expanded',String(this.modal==='account'));account.setAttribute('aria-haspopup','dialog');
   if(menuPopover){
    const rect=(this.modal==='account'?account:menu).getBoundingClientRect();
